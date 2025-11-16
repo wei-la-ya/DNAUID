@@ -9,7 +9,8 @@ from gsuid_core.sv import SV
 from ..utils import TZ
 from ..utils.api.mh_map import get_mh_list
 from .draw_mh import draw_mh
-from .subscribe_mh import get_mh_subscribe, send_mh_notify, subscribe_mh
+from .subscribe_mh import get_mh_subscribe, send_mh_notify, subscribe_mh, set_mh_push_time_range
+from ..utils.msgs.notify import send_dna_notify
 
 sv_mh = SV("dna密函")
 sv_mh_list = SV("dna密函列表")
@@ -65,6 +66,39 @@ async def send_mh_subscribe(bot: Bot, ev: Event):
         return
 
     await get_mh_subscribe(bot, ev)
+
+
+@sv_mh_subscribe.on_regex(r"^订阅密函时间(\d{1,2}):(\d{1,2})$")
+async def dna_mh_set_push_time(bot: Bot, ev: Event):
+    """设置密函推送时间段命令处理器"""
+    if ev.bot_id != "onebot":
+        logger.warning(f"非onebot禁止设置密函推送时间段【{ev.bot_id}】")
+        return
+
+    # 提取时间段
+    match = re.search(r"订阅密函时间(\d{1,2}):(\d{1,2})", ev.raw_text)
+    if not match:
+        await send_dna_notify(bot, ev, "设置推送时间段格式错误，请使用格式: 订阅密函时间17:22")
+        return
+
+    start_hour, end_hour = match.groups()
+    start_hour = int(start_hour)
+    end_hour = int(end_hour)
+
+    # 验证时间格式
+    if start_hour > 23 or end_hour > 23:
+        await send_dna_notify(bot, ev, "时间格式错误，请确保小时在0-23之间")
+        return
+
+    if start_hour >= end_hour:
+        await send_dna_notify(bot, ev, "开始时间必须早于结束时间")
+        return
+
+    # 构建时间段格式 HH:MM-HH:MM，按照用户要求，使用用户输入的时间
+    # 注意：用户输入的是 17:22 格式，表示 17:00-22:00
+    time_range = f"{start_hour:02d}:00-{end_hour:02d}:00"
+    
+    await set_mh_push_time_range(bot, ev, time_range)
 
 
 # 每小时5秒执行一次密函推送
