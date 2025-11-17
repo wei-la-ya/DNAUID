@@ -49,6 +49,10 @@ COLOR_BLUE = (30, 40, 60)
 COLOR_PURPLE = (138, 43, 226)
 
 
+def get_ICON():
+    return Image.open(ICON).convert("RGBA")
+
+
 def get_dna_bg(w: int, h: int, bg: str = "bg") -> Image.Image:
     img = Image.open(TEXT_PATH / f"{bg}.jpg").convert("RGBA")
     return crop_center_img(img, w, h)
