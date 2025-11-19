@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Optional, Union
 
 import async_timeout
+import httpx
 from pydantic import BaseModel
 from starlette.responses import HTMLResponse
 
@@ -39,7 +40,7 @@ async def page_login(bot: Bot, ev: Event):
     if is_local:
         return await page_login_local(bot, ev, url)
     else:
-        raise Exception("二重螺旋暂不支持外置登录")
+        return await page_login_other(bot, ev, url)
 
 
 async def token_login(bot: Bot, ev: Event, token: str):
@@ -128,6 +129,68 @@ class LoginParams(BaseModel):
     user_id: str
     mobile: Optional[Union[str, int]] = None
     code: Optional[Union[str, int]] = None
+
+
+async def page_login_other(bot: Bot, ev: Event, url: str):
+    user_token = get_token(ev.user_id)
+
+    auth = {"bot_id": ev.bot_id, "user_id": ev.user_id}
+
+    token = cache.get(user_token)
+    if isinstance(token, str):
+        await send_login(bot, ev, f"{url}/dna/i/{token}")
+        return
+
+    async with httpx.AsyncClient() as client:
+        try:
+            r = await client.post(
+                url + "/dna/token",
+                json=auth,
+                headers={"Content-Type": "application/json"},
+            )
+            token = r.json().get("data", {}).get("token", "")
+        except Exception as e:
+            token = ""
+            logger.error(e)
+        if not token:
+            return await send_dna_notify(bot, ev, "登录服务请求失败! 请稍后再试")
+
+        await send_login(bot, ev, f"{url}/dna/i/{token}")
+
+        cache.set(user_token, token)
+        times = 3
+        async with async_timeout.timeout(600):
+            while True:
+                if times <= 0:
+                    return await send_dna_notify(
+                        bot, ev, "登录服务请求失败! 请稍后再试"
+                    )
+                try:
+                    result = await client.post(url + "/dna/get", json={"token": token})
+                    resp = result.json()
+                    if not resp["success"]:
+                        times -= 1
+                        await asyncio.sleep(5)
+                        continue
+                    data = resp["data"] or {}
+                except Exception as e:
+                    cache.delete(user_token)
+                    logger.error("外置登录请求失败", e)
+                    return await send_dna_notify(
+                        bot, ev, "登录服务请求失败! 请稍后再试"
+                    )
+
+                if not data.get("cookies"):
+                    await asyncio.sleep(2)
+                    continue
+
+                cache.delete(user_token)
+                login_service: DNALoginService = DNALoginService(bot, ev)
+                login_result = await login_service.dna_login_token(
+                    data["cookies"], data["dev_code"]
+                )
+                await send_dna_notify(bot, ev, login_result)
+                break
 
 
 async def page_login_local(bot: Bot, ev: Event, url):
