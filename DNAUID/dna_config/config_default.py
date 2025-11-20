@@ -63,4 +63,9 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         data=["group"],
         options=["private", "group"],
     ),
+    "MHThrApi": GsBoolConfig(
+        "是否启用密函第三方API",
+        "关闭后需要bot内有登录的用户才能获取密函信息",
+        True,
+    ),
 }

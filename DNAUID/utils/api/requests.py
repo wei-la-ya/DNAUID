@@ -115,12 +115,20 @@ class DNAApi:
         return await self._dna_request(ROLE_LIST_URL, "POST", headers)
 
     async def get_mh(self):
-        for mh_api in MH_LIST:
-            res = await self._dna_request(
-                url=mh_api.url, method=mh_api.method, header=mh_api.headers
-            )
-            if res.is_success:
-                return res
+        from ...dna_config.dna_config import DNAConfig
+
+        if DNAConfig.get_config("MHThrApi").data:
+            for mh_api in MH_LIST:
+                try:
+                    res = await self._dna_request(
+                        url=mh_api.url, method=mh_api.method, header=mh_api.headers
+                    )
+                    if res.is_success:
+                        return res
+                except Exception as e:
+                    logger.error("获取密函失败", e)
+                    continue
+            return
 
         dna_user = await self.get_random_dna_user()
         if not dna_user:
