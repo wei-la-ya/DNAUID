@@ -128,7 +128,6 @@ class DNAApi:
                 except Exception as e:
                     logger.error("获取密函失败", e)
                     continue
-            return
 
         dna_user = await self.get_random_dna_user()
         if not dna_user:
