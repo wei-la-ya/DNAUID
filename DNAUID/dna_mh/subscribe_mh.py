@@ -1,12 +1,12 @@
-from typing import List, Optional, Tuple
+from typing import List, Tuple, Optional
 
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 from gsuid_core.subscribe import gs_subscribe
 
 from ..dna_config.prefix import DNA_PREFIX
-from ..utils.constants.boardcast import BoardcastTypeEnum
 from ..utils.msgs.notify import send_dna_notify
+from ..utils.constants.boardcast import BoardcastTypeEnum
 
 
 def list2str(lst: List[str]) -> str:
@@ -190,7 +190,6 @@ async def subscribe_mh_pic(
             bot_id=ev.bot_id,
             user_type=ev.user_type,
             WS_BOT_ID=ev.WS_BOT_ID,
-            uid=ev.user_id,
         )
         if not data:
             await send_dna_notify(bot, ev, "未曾订阅密函图片")
@@ -200,7 +199,6 @@ async def subscribe_mh_pic(
             "session",
             BoardcastTypeEnum.MH_PIC_SUBSCRIBE,
             ev,
-            uid=ev.user_id,
         )
         await send_dna_notify(bot, ev, "成功取消订阅密函图片")
     else:
@@ -208,7 +206,6 @@ async def subscribe_mh_pic(
             "session",
             BoardcastTypeEnum.MH_PIC_SUBSCRIBE,
             ev,
-            uid=ev.user_id,
         )
         await send_dna_notify(bot, ev, "成功订阅密函图片")
 
