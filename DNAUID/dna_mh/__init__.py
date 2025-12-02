@@ -1,5 +1,3 @@
-import re
-
 from gsuid_core.aps import scheduler
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
@@ -52,19 +50,14 @@ async def send_mh_list(bot: Bot, ev: Event):
     return await bot.send("\n".join(get_mh_list()))
 
 
-@sv_mh_subscribe.on_regex(rf"^(订阅|取消订阅)({RE_MH_TYPE_LIST})?({RE_MH_LIST})密函$")
+@sv_mh_subscribe.on_regex(
+    rf"^(订阅|取消订阅)(?P<mh_type>{RE_MH_TYPE_LIST})?(?P<mh_name>{RE_MH_LIST})密函$"
+)
 async def dna_mh_subscribe(bot: Bot, ev: Event):
     if ev.bot_id != "onebot":
         logger.warning(f"非onebot禁止订阅密函【{ev.bot_id}】")
         return
 
-    match = re.search(
-        rf"(订阅|取消订阅)(?P<mh_type>{RE_MH_TYPE_LIST})?(?P<mh_name>{RE_MH_LIST})密函$",
-        ev.raw_text,
-    )
-    if not match:
-        return
-    ev.regex_dict = match.groupdict()
     mh_type = ev.regex_dict.get("mh_type")
     mh_name = ev.regex_dict.get("mh_name")
     if not mh_name:
@@ -87,12 +80,7 @@ async def dna_mh_push_time(bot: Bot, ev: Event):
     ]
     msg = "\n".join(msg)
 
-    match = re.search(r"订阅密函(时间|周期)(\d{1,2}):(\d{1,2})", ev.raw_text)
-    if not match:
-        await send_dna_notify(bot, ev, msg)
-        return
-
-    _, start_hour, end_hour = match.groups()
+    _, start_hour, end_hour = ev.regex_group
     start_hour = int(start_hour)
     end_hour = int(end_hour)
 

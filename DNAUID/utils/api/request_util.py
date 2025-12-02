@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, computed_field
 CONTENT_TYPE = "application/x-www-form-urlencoded; charset=utf-8"
 
 ios_base_header = {
-    "version": "1.1.2",
+    "version": "1.1.3",
     "source": "ios",
     "Content-Type": CONTENT_TYPE,
     "User-Agent": "DoubleHelix/4 CFNetwork/3860.100.1 Darwin/25.0.0",

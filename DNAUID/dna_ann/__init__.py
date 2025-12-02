@@ -45,7 +45,7 @@ async def sub_ann_dna(bot: Bot, ev: Event):
         logger.debug(f"非onebot禁止订阅二重螺旋公告 【{ev.bot_id}】")
         return
 
-    if ev.group_id is None:
+    if not ev.group_id:
         return await bot.send("请在群聊中订阅")
     if not DNAConfig.get_config("DNAAnnOpen").data:
         return await bot.send("二重螺旋公告推送功能已关闭")
@@ -73,7 +73,7 @@ async def unsub_ann_dna(bot: Bot, ev: Event):
         logger.debug(f"非onebot禁止订阅二重螺旋公告 【{ev.bot_id}】")
         return
 
-    if ev.group_id is None:
+    if not ev.group_id:
         return await bot.send("请在群聊中取消订阅")
 
     data = await gs_subscribe.get_subscribe(task_name_ann)
