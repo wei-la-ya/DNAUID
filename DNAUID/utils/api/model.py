@@ -1,6 +1,6 @@
 from typing import Any, List, Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import Field, BaseModel, model_validator
 
 from ..constants.sign_bbs_mark import BBSMarkName
 
@@ -22,9 +22,7 @@ class DNALoginRes(BaseModel):
     userGameList: List[UserGame] = Field(description="userGameList")
     isRegister: int = Field(description="isRegister", default=0)
     status: Optional[int] = Field(description="status", default=0)
-    isComplete: Optional[int] = Field(
-        description="isComplete 是否完成绑定 0: 未绑定, 1: 已绑定", default=0
-    )
+    isComplete: Optional[int] = Field(description="isComplete 是否完成绑定 0: 未绑定, 1: 已绑定", default=0)
     refreshToken: str = Field(exclude=True, description="refreshToken")
 
 
@@ -57,9 +55,7 @@ class DNARoleForToolInstance(BaseModel):
 class DNARoleForToolInstanceInfo(BaseModel):
     instances: List[DNARoleForToolInstance] = Field(description="instances")
 
-    mh_type: Optional[Literal["role", "weapon", "mzx"]] = Field(
-        description="mh_type", default=None
-    )
+    mh_type: Optional[Literal["role", "weapon", "mzx"]] = Field(description="mh_type", default=None)
 
 
 class DraftDoingInfo(BaseModel):
@@ -72,9 +68,7 @@ class DraftDoingInfo(BaseModel):
 
 
 class DraftInfo(BaseModel):
-    draftDoingInfo: Optional[List[DraftDoingInfo]] = Field(
-        description="draftDoingInfo", default=None
-    )
+    draftDoingInfo: Optional[List[DraftDoingInfo]] = Field(description="draftDoingInfo", default=None)
     draftDoingNum: int = Field(description="正在做的锻造")
     draftMaxNum: int = Field(description="最大锻造数量")
 
@@ -272,7 +266,6 @@ class DNABBSTask(BaseModel):
 
 
 class DNATaskProcessRes(BaseModel):
-
     dailyTask: List[DNABBSTask] = Field(description="dailyTask")
     # growTask: List[DNABBSTask] = Field(description="growTask")
 

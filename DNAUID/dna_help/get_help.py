@@ -1,15 +1,15 @@
 import json
-from pathlib import Path
 from typing import Dict
+from pathlib import Path
 
 from PIL import Image
 
-from gsuid_core.help.draw_new_plugin_help import get_new_help
 from gsuid_core.help.model import PluginHelp
+from gsuid_core.help.draw_new_plugin_help import get_new_help
 
+from ..version import DNAUID_version
 from ..dna_config import DNA_PREFIX
 from ..utils.image import get_footer
-from ..version import DNAUID_version
 
 ICON = Path(__file__).parent.parent.parent / "ICON.png"
 HELP_DATA = Path(__file__).parent / "help.json"

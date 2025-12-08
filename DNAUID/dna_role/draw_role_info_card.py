@@ -1,6 +1,6 @@
 import math
-from pathlib import Path
 from typing import List, Literal, Optional
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 from pydantic import BaseModel
@@ -10,32 +10,32 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils import dna_api
+from ..utils.image import (
+    COLOR_WHITE,
+    COLOR_FIRE_BRICK,
+    COLOR_PALE_GOLDENROD,
+    add_footer,
+    get_dna_bg,
+    get_attr_img,
+    get_grade_img,
+    get_avatar_img,
+    get_weapon_img,
+    get_smooth_drawer,
+    get_weapon_attr_img,
+    get_avatar_title_img,
+)
 from ..utils.api.model import DNARoleForToolRes
+from ..utils.msgs.notify import (
+    dna_not_found,
+    dna_uid_invalid,
+    dna_token_invalid,
+)
 from ..utils.database.models import DNABind
 from ..utils.fonts.dna_fonts import (
     dna_font_20,
     dna_font_25,
     dna_font_40,
     dna_font_50,
-)
-from ..utils.image import (
-    COLOR_FIRE_BRICK,
-    COLOR_PALE_GOLDENROD,
-    COLOR_WHITE,
-    add_footer,
-    get_attr_img,
-    get_avatar_img,
-    get_avatar_title_img,
-    get_dna_bg,
-    get_grade_img,
-    get_smooth_drawer,
-    get_weapon_attr_img,
-    get_weapon_img,
-)
-from ..utils.msgs.notify import (
-    dna_not_found,
-    dna_token_invalid,
-    dna_uid_invalid,
 )
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
@@ -68,9 +68,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
         await dna_token_invalid(bot, ev)
         return
 
-    default_role = await dna_api.get_default_role_for_tool(
-        dna_user.cookie, dna_user.dev_code
-    )
+    default_role = await dna_api.get_default_role_for_tool(dna_user.cookie, dna_user.dev_code)
     if not default_role.is_success:
         await dna_not_found(bot, ev, "角色列表信息")
         return
@@ -80,9 +78,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
     # 解锁角色数量
     role_unlocked_count = len([i for i in role_show.roleChars if i.unLocked])
     # 解锁远程武器数量
-    lang_weapon_unlocked_count = len(
-        [i for i in role_show.langRangeWeapons if i.unLocked]
-    )
+    lang_weapon_unlocked_count = len([i for i in role_show.langRangeWeapons if i.unLocked])
     # 解锁近战武器数量
     close_weapon_unlocked_count = len([i for i in role_show.closeWeapons if i.unLocked])
 
@@ -93,11 +89,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
         ("远程武器", str(lang_weapon_unlocked_count)),
     ]
     achievement_info.extend(
-        [
-            (i.paramKey, i.paramValue)
-            for i in role_show.params
-            if i.paramKey in ("装饰数量", "魔灵数量")
-        ]
+        [(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("装饰数量", "魔灵数量")]
     )
 
     h = 650 + 100 + 50  # title+info+footer
@@ -122,11 +114,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
         role_show.roleId,
         role_show.roleName,
         user_level=role_show.level,
-        other_info=[
-            (i.paramKey, i.paramValue)
-            for i in role_show.params
-            if i.paramKey in ("总活跃天数", "成就达成")
-        ],
+        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "成就达成")],
     )
     card.alpha_composite(avatar_title, (-50, 400))
 
@@ -136,13 +124,9 @@ async def draw_role_info_card(bot: Bot, ev: Event):
 
     for index, info in enumerate(achievement_info):
         # 数量
-        info_bar_draw.text(
-            (65 + index * 215, 20), info[1], COLOR_WHITE, dna_font_50, "mm"
-        )
+        info_bar_draw.text((65 + index * 215, 20), info[1], COLOR_WHITE, dna_font_50, "mm")
         # 描述
-        info_bar_draw.text(
-            (65 + index * 215, 63), info[0], COLOR_PALE_GOLDENROD, dna_font_25, "mm"
-        )
+        info_bar_draw.text((65 + index * 215, 63), info[0], COLOR_PALE_GOLDENROD, dna_font_25, "mm")
 
     card.alpha_composite(info_bar, (100, start_y))
     start_y += 100
@@ -228,9 +212,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
     await bot.send(card)
 
 
-async def _draw_item(
-    card: Image.Image, start_y: int, items: List[ItemTemp], item_bg: Image.Image
-):
+async def _draw_item(card: Image.Image, start_y: int, items: List[ItemTemp], item_bg: Image.Image):
     for index, item in enumerate(items):
         temp_bg = Image.new("RGBA", (210, 300))
         temp_bg2 = Image.new("RGBA", (210, 300))
@@ -268,16 +250,12 @@ async def _draw_item(
             # 当前命座
             grade_img = get_grade_img(item.grade_level)
             ellipse = Image.new("RGBA", (34, 35))
-            get_smooth_drawer().rounded_rectangle(
-                (0, 0, 34, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse
-            )
+            get_smooth_drawer().rounded_rectangle((0, 0, 34, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse)
             ellipse.alpha_composite(grade_img, (0, 5))
             fg.alpha_composite(ellipse, (145, 35))
 
         # 一行5个 先左再右
-        card.alpha_composite(
-            mine_bg, (50 + index % 5 * 230, start_y + index // 5 * 320)
-        )
+        card.alpha_composite(mine_bg, (50 + index % 5 * 230, start_y + index // 5 * 320))
         card.alpha_composite(fg, (50 + index % 5 * 230, start_y + index // 5 * 320))
 
     total_lines = math.ceil(len(items) / hang_num)

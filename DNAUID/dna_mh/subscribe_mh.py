@@ -22,13 +22,9 @@ def subscribe_mh_key(mh_name: str, mh_type: Optional[str] = None) -> str:
     return mh_name if not mh_type else f"{mh_type}:{mh_name}"
 
 
-async def option_add_mh(
-    bot: Bot, ev: Event, user_id: str, mh_name: str, mh_type: Optional[str] = None
-):
+async def option_add_mh(bot: Bot, ev: Event, user_id: str, mh_name: str, mh_type: Optional[str] = None):
     if mh_name == "全部":
-        await send_dna_notify(
-            bot, ev, f"禁止订阅全部密函, 请使用[{DNA_PREFIX}密函列表]命令查看可订阅密函"
-        )
+        await send_dna_notify(bot, ev, f"禁止订阅全部密函, 请使用[{DNA_PREFIX}密函列表]命令查看可订阅密函")
         return
 
     if not mh_type:
@@ -86,9 +82,7 @@ async def option_add_mh(
             )
 
 
-async def option_delete_mh(
-    bot: Bot, ev: Event, user_id: str, mh_name: str, mh_type: Optional[str] = None
-):
+async def option_delete_mh(bot: Bot, ev: Event, user_id: str, mh_name: str, mh_type: Optional[str] = None):
     data = await gs_subscribe.get_subscribe(
         BoardcastTypeEnum.MH_SUBSCRIBE,
         user_id=ev.user_id,
@@ -155,7 +149,6 @@ async def subscribe_mh_time(
     start_time: int,
     end_time: int,
 ):
-
     data = await gs_subscribe.get_subscribe(
         BoardcastTypeEnum.MH_SUBSCRIBE,
         user_id=ev.user_id,
@@ -210,9 +203,7 @@ async def subscribe_mh_pic(
         await send_dna_notify(bot, ev, "成功订阅密函图片")
 
 
-async def get_mh_subscribe_list(
-    bot: Bot, ev: Event, user_id: str
-) -> Tuple[List[str], str]:
+async def get_mh_subscribe_list(bot: Bot, ev: Event, user_id: str) -> Tuple[List[str], str]:
     subscribe_data = await gs_subscribe.get_subscribe(
         BoardcastTypeEnum.MH_SUBSCRIBE,
         user_id=ev.user_id,

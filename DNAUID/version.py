@@ -1,1 +1,1 @@
-DNAUID_version = '1.0.0'
+DNAUID_version = "1.0.0"

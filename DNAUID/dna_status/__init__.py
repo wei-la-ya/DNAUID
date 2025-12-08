@@ -1,8 +1,8 @@
 from gsuid_core.status.plugin_status import register_status
 
-from ..utils.database.models import DNASign, DNAUser
 from ..utils.image import get_ICON
 from ..utils.utils import get_yesterday_date
+from ..utils.database.models import DNASign, DNAUser
 
 
 async def get_today_sign_num():

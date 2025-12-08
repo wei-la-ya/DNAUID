@@ -44,12 +44,7 @@ _data = {
 }
 
 
-MH_LIST = list(
-    set(
-        item["name"].split("/")[0]
-        for item in _data["role"] + _data["weapon"] + _data["mzx"]
-    )
-)
+MH_LIST = list(set(item["name"].split("/")[0] for item in _data["role"] + _data["weapon"] + _data["mzx"]))
 
 
 def get_mh_type_name(mh_type: Literal["role", "weapon", "mzx"]) -> str:

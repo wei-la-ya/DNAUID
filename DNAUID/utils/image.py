@@ -1,27 +1,27 @@
 import os
 import random
+from typing import Tuple, Union, Optional
 from pathlib import Path
-from typing import Optional, Tuple, Union
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.utils.download_resource.download_file import download
 from gsuid_core.utils.image.image_tools import (
     crop_center_img,
     get_event_avatar,
 )
+from gsuid_core.utils.download_resource.download_file import download
 
 from .resource.RESOURCE_PATH import (
-    ATTR_PATH,
-    AVATAR_PATH,
-    CUSTOM_PAINT_PATH,
     MOD_PATH,
+    ATTR_PATH,
     PAINT_PATH,
     SKILL_PATH,
-    WEAPON_ATTR_PATH,
+    AVATAR_PATH,
     WEAPON_PATH,
+    WEAPON_ATTR_PATH,
+    CUSTOM_PAINT_PATH,
 )
 
 ICON = Path(__file__).parent.parent.parent / "ICON.png"
@@ -109,9 +109,7 @@ async def download_pic_from_url(
     return img.convert("RGBA")
 
 
-async def get_skill_img(
-    char_id: Union[str, int], skill_name: str, pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_skill_img(char_id: Union[str, int], skill_name: str, pic_url: Optional[str] = None) -> Image.Image:
     char_skill_dir = SKILL_PATH / str(char_id)
     char_skill_dir.mkdir(parents=True, exist_ok=True)
 
@@ -125,9 +123,7 @@ async def get_skill_img(
     return Image.open(skill_path).convert("RGBA")
 
 
-async def get_avatar_img(
-    char_id: Union[str, int], pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_avatar_img(char_id: Union[str, int], pic_url: Optional[str] = None) -> Image.Image:
     char_avatar_dir = AVATAR_PATH
     char_avatar_dir.mkdir(parents=True, exist_ok=True)
 
@@ -140,9 +136,7 @@ async def get_avatar_img(
     return Image.open(avatar_path).convert("RGBA")
 
 
-async def get_weapon_img(
-    weapon_id: Union[str, int], pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_weapon_img(weapon_id: Union[str, int], pic_url: Optional[str] = None) -> Image.Image:
     weapon_dir = WEAPON_PATH
     weapon_dir.mkdir(parents=True, exist_ok=True)
 
@@ -155,9 +149,7 @@ async def get_weapon_img(
     return Image.open(weapon_path).convert("RGBA")
 
 
-async def get_attr_img(
-    attr_id: Optional[Union[str, int]] = None, pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_attr_img(attr_id: Optional[Union[str, int]] = None, pic_url: Optional[str] = None) -> Image.Image:
     if attr_id is None:
         if pic_url:
             attr_id = pic_url.split("/")[-1]
@@ -176,9 +168,7 @@ async def get_attr_img(
     return Image.open(attr_path).convert("RGBA")
 
 
-async def get_weapon_attr_img(
-    attr_id: Optional[Union[str, int]] = None, pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_weapon_attr_img(attr_id: Optional[Union[str, int]] = None, pic_url: Optional[str] = None) -> Image.Image:
     if attr_id is None:
         if pic_url:
             attr_id = pic_url.split("/")[-1]
@@ -197,9 +187,7 @@ async def get_weapon_attr_img(
     return Image.open(attr_path).convert("RGBA")
 
 
-async def get_paint_img(
-    char_id: Union[str, int], pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_paint_img(char_id: Union[str, int], pic_url: Optional[str] = None) -> Image.Image:
     paint_dir = PAINT_PATH
     paint_dir.mkdir(parents=True, exist_ok=True)
 
@@ -236,9 +224,7 @@ async def get_custom_paint_img(
     return False, await get_paint_img(char_id, pic_url)
 
 
-async def get_mod_img(
-    mod_id: Union[str, int], pic_url: Optional[str] = None
-) -> Image.Image:
+async def get_mod_img(mod_id: Union[str, int], pic_url: Optional[str] = None) -> Image.Image:
     mod_dir = MOD_PATH
     mod_dir.mkdir(parents=True, exist_ok=True)
 
@@ -308,9 +294,7 @@ async def get_avatar_title_img(
     avatar_temp.alpha_composite(avatar_frame, (0, 0))
 
     if user_level:
-        avatar_title_level = Image.open(TEXT_PATH / "avatar_title_level.png").convert(
-            "RGBA"
-        )
+        avatar_title_level = Image.open(TEXT_PATH / "avatar_title_level.png").convert("RGBA")
         draw_avatar_title_level = ImageDraw.Draw(avatar_title_level)
         draw_avatar_title_level.text(
             (36, 35),
@@ -324,9 +308,7 @@ async def get_avatar_title_img(
     img.alpha_composite(avatar_temp, (115, 20))
 
     if other_info and len(other_info) >= 2:
-        avatar_title_base_info = Image.open(
-            TEXT_PATH / "avatar_title_base_info.png"
-        ).convert("RGBA")
+        avatar_title_base_info = Image.open(TEXT_PATH / "avatar_title_base_info.png").convert("RGBA")
 
         if len(other_info) >= 4:
             other_info = other_info[:4]
@@ -425,9 +407,7 @@ class SmoothDrawer:
             w, h = xy
             paste_x, paste_y = 0, 0
         else:
-            raise ValueError(
-                f"xy 参数必须是 2 或 4 个元素的元组，当前为 {len(xy)} 个元素"
-            )
+            raise ValueError(f"xy 参数必须是 2 或 4 个元素的元组，当前为 {len(xy)} 个元素")
 
         if h <= 0 or w <= 0:
             return
@@ -457,9 +437,7 @@ def get_smooth_drawer(scale: int = 4) -> SmoothDrawer:
     return SmoothDrawer(scale=scale)
 
 
-def compress_to_webp(
-    image_path: Path, quality: int = 80, delete_original: bool = True
-) -> tuple[bool, Path]:
+def compress_to_webp(image_path: Path, quality: int = 80, delete_original: bool = True) -> tuple[bool, Path]:
     try:
         from PIL import Image
 

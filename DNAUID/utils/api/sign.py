@@ -1,8 +1,8 @@
+import time
+import uuid
 import base64
 import hashlib
 import secrets
-import time
-import uuid
 from typing import Any, Dict, Optional
 
 
@@ -11,18 +11,12 @@ def rsa_encrypt(text: str, public_key_b64: str) -> str:
         from Crypto.Cipher import PKCS1_v1_5
         from Crypto.PublicKey import RSA
     except Exception:
-        raise RuntimeError(
-            "[DNA] 缺少依赖: 需要 pycryptodome 执行 RSA 加密。请安装: uv add pycryptodome"
-        )
+        raise RuntimeError("[DNA] 缺少依赖: 需要 pycryptodome 执行 RSA 加密。请安装: uv add pycryptodome")
 
     try:
         # 将一行 base64 公钥转 PEM（PKCS#8 公钥）
         lines = [public_key_b64[i : i + 64] for i in range(0, len(public_key_b64), 64)]
-        pem = (
-            "-----BEGIN PUBLIC KEY-----\n"
-            + "\n".join(lines)
-            + "\n-----END PUBLIC KEY-----"
-        )
+        pem = "-----BEGIN PUBLIC KEY-----\n" + "\n".join(lines) + "\n-----END PUBLIC KEY-----"
         rsa_key = RSA.import_key(pem)
         cipher = PKCS1_v1_5.new(rsa_key)
         enc_bytes = cipher.encrypt(text.encode("utf-8"))
@@ -81,9 +75,7 @@ def xor_encode(text: str, key: str) -> str:
     return "".join(out)
 
 
-def build_signature(
-    data: Dict[str, Any], token: Optional[str] = None
-) -> Dict[str, Any]:
+def build_signature(data: Dict[str, Any], token: Optional[str] = None) -> Dict[str, Any]:
     ts = int(time.time() * 1000)
     sign_data = {**data, "timestamp": ts, "token": token}
     sec = rand_str(16)

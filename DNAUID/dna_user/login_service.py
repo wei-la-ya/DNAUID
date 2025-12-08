@@ -1,13 +1,13 @@
 import uuid
-from typing import List, Optional, Union
+from typing import List, Union, Optional
 
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 
 from ..utils import dna_api
 from ..utils.api.model import DNALoginRes, DNARoleListRes
-from ..utils.constants.constants import DNA_GAME_ID
 from ..utils.database.models import DNABind, DNAUser
+from ..utils.constants.constants import DNA_GAME_ID
 
 complete_error_msg = "您尚未注册二重螺旋账号，请先在【皎皎角】进行角色绑定"
 role_error_msg = "未找到二重螺旋角色，请在皎皎角注册账号后重新登录"
@@ -77,9 +77,7 @@ class DNALoginService:
                         dev_code=dev_code,
                     )
 
-                res = await DNABind.insert_uid(
-                    user_id, bot_id, uid, group_id, lenth_limit=13
-                )
+                res = await DNABind.insert_uid(user_id, bot_id, uid, group_id, lenth_limit=13)
                 if res == 0 or (res == -2 and show_vo.isDefault == 1):
                     await DNABind.switch_uid_by_game(user_id, bot_id, uid)
 
@@ -104,9 +102,7 @@ class DNALoginService:
 
         msg = []
         for uid in uid_list:
-            dna_user: Optional[DNAUser] = await dna_api.get_dna_user(
-                uid, self.ev.user_id, self.ev.bot_id
-            )
+            dna_user: Optional[DNAUser] = await dna_api.get_dna_user(uid, self.ev.user_id, self.ev.bot_id)
             if not dna_user:
                 continue
             msg.append(f"二重螺旋uid: {uid}")

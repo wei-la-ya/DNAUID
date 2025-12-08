@@ -1,9 +1,9 @@
+import time
 import asyncio
 import functools
-import time
-from collections import OrderedDict
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+from collections import OrderedDict
 
 import httpx
 
@@ -107,7 +107,7 @@ async def get_public_ip(host="127.127.127.127"):
             r = await client.get("https://api.ipify.org/?format=json", timeout=4)
             ip = r.json()["ip"]
             return ip
-    except:  # noqa:E722, B001
+    except Exception:
         pass
 
     # 尝试从 httpbin.org 获取 IP 地址

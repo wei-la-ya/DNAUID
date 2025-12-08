@@ -1,47 +1,45 @@
-import asyncio
 import json
 import random
-from typing import Any, Dict, List, Literal, Mapping, Optional, Union
+import asyncio
+from typing import Any, Dict, List, Union, Literal, Mapping, Optional
 from urllib.parse import urlencode
 
 import aiohttp
 
 from gsuid_core.logger import logger
 
-from ..constants.constants import DNA_GAME_ID
-from ..database.models import DNAUser
-from ..utils import timed_async_cache
 from .api import (
+    LOGIN_URL,
     ANN_LIST_URL,
     BBS_SIGN_URL,
     GAME_SIGN_URL,
-    GET_POST_DETAIL_URL,
-    GET_POST_LIST_URL,
-    GET_RSA_PUBLIC_KEY_URL,
-    GET_TASK_PROCESS_URL,
-    HAVE_SIGN_IN_URL,
     LIKE_POST_URL,
     LOGIN_LOG_URL,
-    LOGIN_URL,
-    REPLY_POST_URL,
-    ROLE_DETAIL_URL,
-    ROLE_FOR_TOOL_URL,
     ROLE_LIST_URL,
+    REPLY_POST_URL,
     SHARE_POST_URL,
     SHORT_NOTE_URL,
+    ROLE_DETAIL_URL,
+    HAVE_SIGN_IN_URL,
+    GET_POST_LIST_URL,
+    ROLE_FOR_TOOL_URL,
     SIGN_CALENDAR_URL,
+    GET_POST_DETAIL_URL,
+    GET_TASK_PROCESS_URL,
+    GET_RSA_PUBLIC_KEY_URL,
 )
-from .request_util import DNAApiResp, RespCode, get_base_header, is_h5
-from .sign import build_signature, get_dev_code, rsa_encrypt
+from .sign import rsa_encrypt, get_dev_code, build_signature
+from ..utils import timed_async_cache
+from .request_util import RespCode, DNAApiResp, is_h5, get_base_header
+from ..database.models import DNAUser
+from ..constants.constants import DNA_GAME_ID
 
 
 class DNAApi:
     ssl_verify = True
     ann_list_data = []
 
-    async def get_dna_user(
-        self, uid: str, user_id: str, bot_id: str
-    ) -> Optional[DNAUser]:
+    async def get_dna_user(self, uid: str, user_id: str, bot_id: str) -> Optional[DNAUser]:
         dna_user = await DNAUser.select_dna_user(uid, user_id, bot_id)
         if not dna_user or not dna_user.cookie:
             return
@@ -74,9 +72,7 @@ class DNAApi:
     async def get_rsa_public_key(self) -> str:
         dev_code = get_dev_code()
         headers = await get_base_header(dev_code=dev_code)
-        res = await self._dna_request(
-            url=GET_RSA_PUBLIC_KEY_URL, method="POST", header=headers
-        )
+        res = await self._dna_request(url=GET_RSA_PUBLIC_KEY_URL, method="POST", header=headers)
 
         rsa_pub = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDGpdbezK+eknQZQzPOjp8mr/dP+QHwk8CRkQh6C6qFnfLH3tiyl0pnt3dePuFDnM1PUXGhCkQ157ePJCQgkDU2+mimDmXh0oLFn9zuWSp+U8uLSLX3t3PpJ8TmNCROfUDWvzdbnShqg7JfDmnrOJz49qd234W84nrfTHbzdqeigQIDAQAB"
         if res.is_success and isinstance(res.data, dict):
@@ -95,9 +91,7 @@ class DNAApi:
         rk = si["k"]
         pk = await self.get_rsa_public_key()
         ek = rsa_encrypt(rk, pk)
-        header = await get_base_header(
-            dev_code, is_need_origin=True, is_need_refer=True
-        )
+        header = await get_base_header(dev_code, is_need_origin=True, is_need_refer=True)
 
         if is_h5(header):
             header.update({"k": ek})
@@ -138,9 +132,7 @@ class DNAApi:
             header.update({"rk": rk, "key": ek})
         return await self._dna_request(ROLE_FOR_TOOL_URL, "POST", header, data=data)
 
-    async def get_role_detail(
-        self, token: str, char_id: str, char_eid: str, dev_code: str
-    ):
+    async def get_role_detail(self, token: str, char_id: str, char_eid: str, dev_code: str):
         headers = await get_base_header(dev_code=dev_code, token=token)
         data = {"charId": char_id, "charEid": char_eid, "type": 1}
         return await self._dna_request(ROLE_DETAIL_URL, "POST", headers, data=data)
@@ -159,9 +151,7 @@ class DNAApi:
         data = {"gameId": DNA_GAME_ID}
         return await self._dna_request(SIGN_CALENDAR_URL, "POST", headers, data=data)
 
-    async def game_sign(
-        self, token: str, day_award_id: int, period: int, dev_code: Optional[str] = None
-    ):
+    async def game_sign(self, token: str, day_award_id: int, period: int, dev_code: Optional[str] = None):
         headers = await get_base_header(dev_code=dev_code, token=token)
         data = {
             "dayAwardId": day_award_id,
@@ -180,9 +170,7 @@ class DNAApi:
         headers = await get_base_header(dev_code=dev_code, token=token)
         data = {"gameId": DNA_GAME_ID}
         try:
-            return await self._dna_request(
-                GET_TASK_PROCESS_URL, "POST", headers, data=data
-            )
+            return await self._dna_request(GET_TASK_PROCESS_URL, "POST", headers, data=data)
         except Exception as e:
             logger.exception("get_task_process", e)
             return DNAApiResp[Any].err("请求皎皎角服务失败")
@@ -203,23 +191,17 @@ class DNAApi:
             "timeType": 0,
         }
         try:
-            return await self._dna_request(
-                GET_POST_LIST_URL, "POST", headers, data=data
-            )
+            return await self._dna_request(GET_POST_LIST_URL, "POST", headers, data=data)
         except Exception as e:
             logger.exception("get_post_list", e)
             return DNAApiResp[Any].err("请求皎皎角服务失败")
 
-    async def get_post_detail(
-        self, post_id: str, token: Optional[str] = None, dev_code: Optional[str] = None
-    ):
+    async def get_post_detail(self, post_id: str, token: Optional[str] = None, dev_code: Optional[str] = None):
         """获取帖子详情"""
         header = await get_base_header(dev_code=dev_code, token=token)
         data = {"postId": post_id}
         try:
-            return await self._dna_request(
-                GET_POST_DETAIL_URL, "POST", header, data=data
-            )
+            return await self._dna_request(GET_POST_DETAIL_URL, "POST", header, data=data)
         except Exception as e:
             logger.exception("get_post_detail", e)
             return DNAApiResp[Any].err("请求皎皎角服务失败")
@@ -298,9 +280,7 @@ class DNAApi:
         rk = si["k"]
         pk = await self.get_rsa_public_key()
         ek = rsa_encrypt(rk, pk)
-        header = await get_base_header(
-            dev_code, token=token, is_need_origin=True, is_need_refer=True
-        )
+        header = await get_base_header(dev_code, token=token, is_need_origin=True, is_need_refer=True)
 
         if is_h5(header):
             header.update({"k": ek})

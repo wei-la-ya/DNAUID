@@ -1,8 +1,8 @@
-import asyncio
 import random
-from collections import defaultdict
-from datetime import timedelta
+import asyncio
 from typing import List, Literal
+from datetime import timedelta
+from collections import defaultdict
 
 from gsuid_core.logger import logger
 from gsuid_core.models import Message
@@ -10,14 +10,14 @@ from gsuid_core.segment import MessageSegment
 from gsuid_core.subscribe import gs_subscribe
 from gsuid_core.utils.database.models import Subscribe
 
-from ..dna_config.dna_config import DNAConfig
 from ..utils import get_datetime
-from ..utils.api.mh_map import get_mh_type_name
-from ..utils.api.model import DNARoleForToolInstanceInfo
-from ..utils.constants.boardcast import BoardcastTypeEnum
-from .cache_mh import get_mh_result
 from .draw_mh import draw_mh_card
+from .cache_mh import get_mh_result
 from .subscribe_mh import str2list, subscribe_mh_key
+from ..utils.api.model import DNARoleForToolInstanceInfo
+from ..utils.api.mh_map import get_mh_type_name
+from ..dna_config.dna_config import DNAConfig
+from ..utils.constants.boardcast import BoardcastTypeEnum
 
 
 async def send_mh_notify():
@@ -45,9 +45,7 @@ async def push_text_notify(mh_result: List[DNARoleForToolInstanceInfo]):
         return
 
     # {"拆解": ["role", "weapon"], "角色:拆解": ["role"], "武器:拆解": ["weapon"]}
-    mh_re_datas: defaultdict[str, list[Literal["role", "weapon", "mzx"]]] = defaultdict(
-        list
-    )
+    mh_re_datas: defaultdict[str, list[Literal["role", "weapon", "mzx"]]] = defaultdict(list)
     for ins in mh_result:
         if not ins.mh_type:
             continue
@@ -82,9 +80,7 @@ async def push_text_notify(mh_result: List[DNARoleForToolInstanceInfo]):
     # 群聊数据
     groupid2sub = {}
     # {group_id: {"mh_type_name: mh_name": [@user_id]}}
-    groupid2push_msg: defaultdict[str, defaultdict[str, list[str]]] = defaultdict(
-        lambda: defaultdict(list)
-    )
+    groupid2push_msg: defaultdict[str, defaultdict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
 
     async def group_push(subscribe: Subscribe, valid_mh_list: list[str]):
         if not valid_mh_list:
@@ -97,9 +93,7 @@ async def push_text_notify(mh_result: List[DNARoleForToolInstanceInfo]):
                 mh_type_name = get_mh_type_name(mh_type)
                 if ":" in key:
                     key = key.split(":")[1]
-                groupid2push_msg[subscribe.group_id][f"{mh_type_name} : {key}"].append(
-                    subscribe.user_id
-                )
+                groupid2push_msg[subscribe.group_id][f"{mh_type_name} : {key}"].append(subscribe.user_id)
 
         if subscribe.group_id not in groupid2sub:
             groupid2sub[subscribe.group_id] = subscribe
@@ -120,10 +114,7 @@ async def push_text_notify(mh_result: List[DNARoleForToolInstanceInfo]):
             if i in my_mh_list:
                 valid_mh_list.append(i)
 
-        if (
-            "private" in DNAConfig.get_config("MHSubscribe").data
-            and subscribe.user_type == "direct"
-        ):
+        if "private" in DNAConfig.get_config("MHSubscribe").data and subscribe.user_type == "direct":
             await private_push(subscribe, valid_mh_list)
         elif (
             "group" in DNAConfig.get_config("MHSubscribe").data
@@ -154,15 +145,11 @@ async def push_text_notify(mh_result: List[DNARoleForToolInstanceInfo]):
         await asyncio.sleep(0.5 + random.randint(1, 3))
 
 
-async def push_pic_notify(
-    mh_result: List[DNARoleForToolInstanceInfo], remaining_seconds: int
-):
+async def push_pic_notify(mh_result: List[DNARoleForToolInstanceInfo], remaining_seconds: int):
     if not mh_result:
         return
 
-    subscribe_data = await gs_subscribe.get_subscribe(
-        BoardcastTypeEnum.MH_PIC_SUBSCRIBE
-    )
+    subscribe_data = await gs_subscribe.get_subscribe(BoardcastTypeEnum.MH_PIC_SUBSCRIBE)
     if not subscribe_data:
         return
 

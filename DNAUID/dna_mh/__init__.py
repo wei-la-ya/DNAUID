@@ -1,21 +1,21 @@
+from gsuid_core.sv import SV
 from gsuid_core.aps import scheduler
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
-from ..dna_config.dna_config import DNAConfig
 from ..utils import TZ
-from ..utils.api.mh_map import get_mh_list
-from ..utils.msgs.notify import send_dna_notify
 from .draw_mh import draw_mh
 from .push_mh import send_mh_notify
 from .subscribe_mh import (
-    get_mh_subscribe,
     subscribe_mh,
+    get_mh_subscribe,
     subscribe_mh_pic,
     subscribe_mh_time,
 )
+from ..utils.api.mh_map import get_mh_list
+from ..utils.msgs.notify import send_dna_notify
+from ..dna_config.dna_config import DNAConfig
 
 sv_mh = SV("dna密函")
 sv_mh_list = SV("dna密函列表")
@@ -50,9 +50,7 @@ async def send_mh_list(bot: Bot, ev: Event):
     return await bot.send("\n".join(get_mh_list()))
 
 
-@sv_mh_subscribe.on_regex(
-    rf"^(订阅|取消订阅)(?P<mh_type>{RE_MH_TYPE_LIST})?(?P<mh_name>{RE_MH_LIST})密函$"
-)
+@sv_mh_subscribe.on_regex(rf"^(订阅|取消订阅)(?P<mh_type>{RE_MH_TYPE_LIST})?(?P<mh_name>{RE_MH_LIST})密函$")
 async def dna_mh_subscribe(bot: Bot, ev: Event):
     if ev.bot_id != "onebot":
         logger.warning(f"非onebot禁止订阅密函【{ev.bot_id}】")
@@ -84,11 +82,7 @@ async def dna_mh_push_time(bot: Bot, ev: Event):
     start_hour = int(start_hour)
     end_hour = int(end_hour)
 
-    if (
-        (start_hour < 0 or start_hour > 23)
-        or (end_hour < 0 or end_hour > 23)
-        or (start_hour > end_hour)
-    ):
+    if (start_hour < 0 or start_hour > 23) or (end_hour < 0 or end_hour > 23) or (start_hour > end_hour):
         await send_dna_notify(bot, ev, msg)
         return
 

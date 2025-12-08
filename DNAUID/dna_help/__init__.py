@@ -1,12 +1,12 @@
 from PIL import Image
 
-from gsuid_core.bot import Bot
-from gsuid_core.help.utils import register_help
-from gsuid_core.models import Event
 from gsuid_core.sv import SV
+from gsuid_core.bot import Bot
+from gsuid_core.models import Event
+from gsuid_core.help.utils import register_help
 
-from ..dna_config import DNA_PREFIX
 from .get_help import ICON, get_help
+from ..dna_config import DNA_PREFIX
 
 sv_dna_help = SV("dna帮助")
 

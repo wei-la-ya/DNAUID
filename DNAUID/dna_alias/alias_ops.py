@@ -1,12 +1,12 @@
 import json
 
 from ..utils.name_convert import (
-    alias_to_char_name,
-    alias_to_char_name_list,
-    alias_to_weapon_name,
-    alias_to_weapon_name_list,
     all_char_list,
     all_weapon_list,
+    alias_to_char_name,
+    alias_to_weapon_name,
+    alias_to_char_name_list,
+    alias_to_weapon_name_list,
 )
 from ..utils.resource.RESOURCE_PATH import CHAR_ALIAS_PATH, WEAPON_ALIAS_PATH
 

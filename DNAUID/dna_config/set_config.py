@@ -2,8 +2,8 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.subscribe import gs_subscribe
 
-from ..utils.constants.boardcast import BoardcastTypeEnum
 from ..utils.database.models import DNAUser
+from ..utils.constants.boardcast import BoardcastTypeEnum
 
 
 async def get_signin_config():
@@ -37,13 +37,9 @@ async def set_config_func(ev: Event, uid: str = "0"):
 
         if ev.bot_id == "onebot":
             if option == "off":
-                await gs_subscribe.delete_subscribe(
-                    "single", BoardcastTypeEnum.SIGN_DNA, ev
-                )
+                await gs_subscribe.delete_subscribe("single", BoardcastTypeEnum.SIGN_DNA, ev)
             else:
-                await gs_subscribe.add_subscribe(
-                    "single", BoardcastTypeEnum.SIGN_DNA, ev
-                )
+                await gs_subscribe.add_subscribe("single", BoardcastTypeEnum.SIGN_DNA, ev)
 
         if option != "off":
             from .dna_config import DNASignConfig

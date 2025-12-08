@@ -8,12 +8,26 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils import dna_api
+from ..utils.image import (
+    COLOR_GRAY,
+    COLOR_GREEN,
+    COLOR_WHITE,
+    COLOR_GOLDENROD,
+    COLOR_PALE_GOLDENROD,
+    get_div,
+    add_footer,
+    get_dna_bg,
+    get_smooth_drawer,
+    get_avatar_title_img,
+    download_pic_from_url,
+)
 from ..utils.api.model import (
-    DNACalendarSignRes,
+    RoleShowForTool,
     DNARoleForToolRes,
     DNATaskProcessRes,
-    RoleShowForTool,
+    DNACalendarSignRes,
 )
+from ..utils.msgs.notify import dna_not_found
 from ..utils.database.models import DNABind
 from ..utils.fonts.dna_fonts import (
     dna_font_20,
@@ -22,20 +36,6 @@ from ..utils.fonts.dna_fonts import (
     dna_font_28,
     dna_font_50,
 )
-from ..utils.image import (
-    COLOR_GOLDENROD,
-    COLOR_GRAY,
-    COLOR_GREEN,
-    COLOR_PALE_GOLDENROD,
-    COLOR_WHITE,
-    add_footer,
-    download_pic_from_url,
-    get_avatar_title_img,
-    get_div,
-    get_dna_bg,
-    get_smooth_drawer,
-)
-from ..utils.msgs.notify import dna_not_found
 from ..utils.resource.RESOURCE_PATH import SIGN_PATH
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
@@ -88,13 +88,7 @@ async def _draw_sign_calendar(
         ("社区累计签到", str(bbs_total_sign_in_day)),
         ("游戏累计签到", str(sign_data.signinTime)),
     ]
-    achievement_info.extend(
-        [
-            (i.paramKey, i.paramValue)
-            for i in role_show.params
-            if i.paramKey in ("总活跃天数")
-        ]
-    )
+    achievement_info.extend([(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数")])
     info_bar = Image.new("RGBA", (1300, 88))
     info_bar_draw = ImageDraw.Draw(info_bar)
     bar = Image.open(TEXT_PATH / "bar.png")
@@ -102,9 +96,7 @@ async def _draw_sign_calendar(
 
     for index, info in enumerate(achievement_info):
         # 数量
-        info_bar_draw.text(
-            (315 + index * 215, 20), info[1], COLOR_WHITE, dna_font_50, "mm"
-        )
+        info_bar_draw.text((315 + index * 215, 20), info[1], COLOR_WHITE, dna_font_50, "mm")
         # 描述
         info_bar_draw.text(
             (315 + index * 215, 63),
@@ -134,9 +126,7 @@ async def _draw_sign_calendar(
 
             progress = int(368 + 496 * task.process)
             # 进度条 总长度为496
-            get_smooth_drawer().rounded_rectangle(
-                (372, 9, progress, 24), 10, COLOR_WHITE, target=line
-            )
+            get_smooth_drawer().rounded_rectangle((372, 9, progress, 24), 10, COLOR_WHITE, target=line)
             card.alpha_composite(line, (200, start_y))
             start_y += 60
 
@@ -160,13 +150,9 @@ async def _draw_sign_calendar(
 
         award = award_dict.get(day)
         if award:
-            icon_img = await download_pic_from_url(
-                SIGN_PATH, award.iconUrl, size=(140, 140)
-            )
+            icon_img = await download_pic_from_url(SIGN_PATH, award.iconUrl, size=(140, 140))
             item_bg.alpha_composite(icon_img, (-10, 0))
-            item_bg_draw.text(
-                (60, 150), f"x{award.awardNum}", COLOR_WHITE, dna_font_28, "mm"
-            )
+            item_bg_draw.text((60, 150), f"x{award.awardNum}", COLOR_WHITE, dna_font_28, "mm")
 
             if is_current:
                 get_smooth_drawer().rounded_rectangle(
@@ -215,17 +201,13 @@ async def draw_sign_calendar(bot: Bot, ev: Event):
     sign_raw_data = sign_resp.data if isinstance(sign_resp.data, dict) else {}
     sign_data = DNACalendarSignRes.model_validate(sign_raw_data)
 
-    task_process_resp = await dna_api.get_task_process(
-        dna_user.cookie, dna_user.dev_code
-    )
+    task_process_resp = await dna_api.get_task_process(dna_user.cookie, dna_user.dev_code)
     if not task_process_resp.is_success:
         return
 
     task_process = DNATaskProcessRes.model_validate(task_process_resp.data)
 
-    default_role = await dna_api.get_default_role_for_tool(
-        dna_user.cookie, dna_user.dev_code
-    )
+    default_role = await dna_api.get_default_role_for_tool(dna_user.cookie, dna_user.dev_code)
     if not default_role.is_success:
         await dna_not_found(bot, ev, "角色列表信息")
         return

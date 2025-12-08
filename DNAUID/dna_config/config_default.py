@@ -2,12 +2,12 @@ from typing import Dict
 
 from gsuid_core.utils.plugins_config.models import (
     GSC,
+    GsIntConfig,
+    GsStrConfig,
     GsBoolConfig,
     GsDictConfig,
-    GsIntConfig,
     GsListConfig,
     GsListStrConfig,
-    GsStrConfig,
 )
 
 CONFIG_DEFAULT: Dict[str, GSC] = {
@@ -26,9 +26,7 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "二重螺旋公告推送总开关",
         True,
     ),
-    "AnnMinuteCheck": GsIntConfig(
-        "公告推送时间检测（单位min）", "公告推送时间检测（单位min）", 10, 60
-    ),
+    "AnnMinuteCheck": GsIntConfig("公告推送时间检测（单位min）", "公告推送时间检测（单位min）", 10, 60),
     "DNALoginUrl": GsStrConfig(
         "二重螺旋登录url",
         "用于设置DNAUID登录界面的配置",
@@ -54,9 +52,7 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "开启后，登录链接变为转发消息",
         False,
     ),
-    "MaxBindNum": GsIntConfig(
-        "绑定UID限制数量（未登录）", "绑定UID限制数量（未登录）", 2, 100
-    ),
+    "MaxBindNum": GsIntConfig("绑定UID限制数量（未登录）", "绑定UID限制数量（未登录）", 2, 100),
     "MHSubscribe": GsListStrConfig(
         "密函订阅开关",
         "private=私聊;group=群聊",

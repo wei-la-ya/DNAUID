@@ -2,10 +2,10 @@ from typing import Dict
 
 from gsuid_core.utils.plugins_config.models import (
     GSC,
-    GsBoolConfig,
     GsIntConfig,
-    GsListStrConfig,
+    GsBoolConfig,
     GsTimeConfig,
+    GsListStrConfig,
 )
 
 CONFIG_SIGN: Dict[str, GSC] = {
@@ -46,9 +46,7 @@ CONFIG_SIGN: Dict[str, GSC] = {
         "每晚二重螺旋签到时间设置",
         "00:05",
     ),
-    "SigninConcurrentNum": GsIntConfig(
-        "自动签到并发数量", "自动签到并发数量", 1, max_value=50
-    ),
+    "SigninConcurrentNum": GsIntConfig("自动签到并发数量", "自动签到并发数量", 1, max_value=50),
     "SigninConcurrentNumInterval": GsListStrConfig(
         "自动签到并发数量间隔，默认3-5秒",
         "自动签到并发数量间隔，默认3-5秒",

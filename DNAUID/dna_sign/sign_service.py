@@ -1,15 +1,15 @@
-import asyncio
 import random
-from typing import Any, Dict, List, Optional, Tuple, Union
+import asyncio
+from typing import Any, Dict, List, Tuple, Union, Optional
 
 from gsuid_core.logger import logger
 
 from ..utils import dna_api
-from ..utils.api.model import DNABBSTask, DNACalendarSignRes, DNATaskProcessRes
-from ..utils.constants.sign_bbs_mark import BBSMarkName
-from ..utils.constants.sign_target import SignTarget
-from ..utils.database.models import DNASign
 from .reply_temps import get_random_reply
+from ..utils.api.model import DNABBSTask, DNATaskProcessRes, DNACalendarSignRes
+from ..utils.database.models import DNASign
+from ..utils.constants.sign_target import SignTarget
+from ..utils.constants.sign_bbs_mark import BBSMarkName
 
 SIGN_STATUS = {
     True: "✅ 已完成",
@@ -148,25 +148,15 @@ class SignService:
             if self.msg_temp["bbs_signed"] != "skip":
                 msg_list.append("社区任务:")
                 if BBSMarkName.BBS_SIGN in check_config:
-                    msg_list.append(
-                        f"签到: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_SIGN]]}"
-                    )
+                    msg_list.append(f"签到: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_SIGN]]}")
                 if BBSMarkName.BBS_DETAIL in check_config:
-                    msg_list.append(
-                        f"浏览: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_DETAIL]]}"
-                    )
+                    msg_list.append(f"浏览: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_DETAIL]]}")
                 if BBSMarkName.BBS_LIKE in check_config:
-                    msg_list.append(
-                        f"点赞: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_LIKE]]}"
-                    )
+                    msg_list.append(f"点赞: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_LIKE]]}")
                 if BBSMarkName.BBS_SHARE in check_config:
-                    msg_list.append(
-                        f"分享: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_SHARE]]}"
-                    )
+                    msg_list.append(f"分享: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_SHARE]]}")
                 if BBSMarkName.BBS_REPLY in check_config:
-                    msg_list.append(
-                        f"回复: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_REPLY]]}"
-                    )
+                    msg_list.append(f"回复: {SIGN_STATUS[self.bbs_states[BBSMarkName.BBS_REPLY]]}")
             else:
                 msg_list.append(f"社区签到: {SIGN_STATUS[self.msg_temp['bbs_signed']]}")
 
@@ -226,9 +216,7 @@ class SignService:
         today_sign_award = calendar_sign.dayAward[calendar_sign.signinTime]
 
         # 开始签到
-        res = await dna_api.game_sign(
-            self.token, today_sign_award.id, today_sign_award.periodId, self.dev_code
-        )
+        res = await dna_api.game_sign(self.token, today_sign_award.id, today_sign_award.periodId, self.dev_code)
         if res.is_success:
             self.msg_temp["signed"] = True
             self.dna_sign.game_sign = SignTarget.GAME_SIGN
@@ -254,9 +242,7 @@ class SignService:
         for task in task_process.dailyTask:
             markName = task.markName
             if not markName:
-                logger.warning(
-                    f"社区任务 {self.uid} {task.remark} 没有 markName: {task.model_dump_json()}"
-                )
+                logger.warning(f"社区任务 {self.uid} {task.remark} 没有 markName: {task.model_dump_json()}")
                 continue
             if not can_bbs_task(markName):
                 continue
@@ -270,11 +256,7 @@ class SignService:
                 continue
 
             post_list = await dna_api.get_post_list(self.token, self.dev_code)
-            if (
-                not post_list.is_success
-                or not post_list.data
-                or not isinstance(post_list.data, dict)
-            ):
+            if not post_list.is_success or not post_list.data or not isinstance(post_list.data, dict):
                 continue
             posts = post_list.data.get("postList", [])
             if not posts:
@@ -338,9 +320,7 @@ class SignService:
 
             await asyncio.sleep(random.uniform(self.delay[0], self.delay[1]))
 
-        self.bbs_states[BBSMarkName.BBS_DETAIL] = (
-            self.dna_sign.bbs_detail >= dna_bbs_task.times
-        )
+        self.bbs_states[BBSMarkName.BBS_DETAIL] = self.dna_sign.bbs_detail >= dna_bbs_task.times
 
     async def _bbs_like(self, dna_bbs_task: DNABBSTask, posts: List[Dict[str, Any]]):
         if self.dna_sign.bbs_like >= SignTarget.BBS_LIKE:
@@ -372,9 +352,7 @@ class SignService:
 
             await asyncio.sleep(random.uniform(self.delay[0], self.delay[1]))
 
-        self.bbs_states[BBSMarkName.BBS_LIKE] = (
-            self.dna_sign.bbs_like >= dna_bbs_task.times
-        )
+        self.bbs_states[BBSMarkName.BBS_LIKE] = self.dna_sign.bbs_like >= dna_bbs_task.times
 
     async def _bbs_share(self, dna_bbs_task: DNABBSTask, posts: List[Dict[str, Any]]):
         if self.dna_sign.bbs_share >= SignTarget.BBS_SHARE:
@@ -385,9 +363,7 @@ class SignService:
         if res.is_success:
             self.dna_sign.bbs_share += 1
 
-        self.bbs_states[BBSMarkName.BBS_SHARE] = (
-            self.dna_sign.bbs_share >= SignTarget.BBS_SHARE
-        )
+        self.bbs_states[BBSMarkName.BBS_SHARE] = self.dna_sign.bbs_share >= SignTarget.BBS_SHARE
 
     async def _bbs_reply(self, dna_bbs_task: DNABBSTask, posts: List[Dict[str, Any]]):
         if self.dna_sign.bbs_reply >= SignTarget.BBS_REPLY:
@@ -420,6 +396,4 @@ class SignService:
 
             await asyncio.sleep(random.uniform(self.delay[0] + 1, self.delay[1] + 1))
 
-        self.bbs_states[BBSMarkName.BBS_REPLY] = (
-            self.dna_sign.bbs_reply >= dna_bbs_task.times
-        )
+        self.bbs_states[BBSMarkName.BBS_REPLY] = self.dna_sign.bbs_reply >= dna_bbs_task.times

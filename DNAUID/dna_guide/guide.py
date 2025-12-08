@@ -6,9 +6,9 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
-from ..dna_config.dna_config import DNAConfig
 from ..utils.msgs.notify import dna_not_found
 from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
+from ..dna_config.dna_config import DNAConfig
 
 GUIDE_PATH = Path(__file__).parent / "texture2d"
 

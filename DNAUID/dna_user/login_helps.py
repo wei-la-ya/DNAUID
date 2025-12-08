@@ -1,5 +1,5 @@
-import hashlib
 import re
+import hashlib
 
 
 def is_valid_chinese_phone_number(phone_number):

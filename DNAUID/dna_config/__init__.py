@@ -1,15 +1,15 @@
+from gsuid_core.sv import SV, get_plugin_available_prefix
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-from gsuid_core.sv import SV, get_plugin_available_prefix
 
-from ..utils.database.models import DNABind
+from .set_config import set_config_func
 from ..utils.msgs.notify import (
-    dna_token_invalid,
     dna_uid_invalid,
     send_dna_notify,
+    dna_token_invalid,
 )
-from .set_config import set_config_func
+from ..utils.database.models import DNABind
 
 sv_dna_config = SV("DNAUID配置")
 

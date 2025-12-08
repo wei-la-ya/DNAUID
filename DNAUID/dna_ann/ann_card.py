@@ -1,18 +1,18 @@
-import html
 import re
+import html
 import time
-from datetime import datetime
 from typing import List, Union
+from datetime import datetime
 
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageOps, ImageDraw
 
 from gsuid_core.logger import logger
 from gsuid_core.utils.image.convert import convert_img
 from gsuid_core.utils.image.image_tools import easy_paste
 
 from ..utils import dna_api, get_datetime
-from ..utils.fonts.dna_fonts import unicode_font_26
 from ..utils.image import download_pic_from_url
+from ..utils.fonts.dna_fonts import unicode_font_26
 from ..utils.resource.RESOURCE_PATH import ANN_CARD_PATH
 
 
@@ -28,11 +28,7 @@ async def ann_batch_card(post_content: List, drow_height: float) -> bytes:
             for duanluo, line_count in drow_duanluo:
                 draw.text((x, y), duanluo, fill=(0, 0, 0), font=unicode_font_26)
                 y += drow_line_height * line_count + 30
-        elif (
-            temp["contentType"] == 2
-            and "url" in temp
-            and temp["url"].endswith(("jpg", "png", "jpeg"))
-        ):
+        elif temp["contentType"] == 2 and "url" in temp and temp["url"].endswith(("jpg", "png", "jpeg")):
             # img = await get_pic(temp["url"], (temp["imgWidth"], temp["imgHeight"]))
             img = await download_pic_from_url(ANN_CARD_PATH, temp["url"])
             img_x = 0
@@ -77,9 +73,7 @@ async def ann_batch_card(post_content: List, drow_height: float) -> bytes:
     return await convert_img(ImageOps.expand(im, padding, "#f9f6f2"))
 
 
-async def ann_detail_card(
-    post_id: Union[int, str], is_check_time=False
-) -> Union[bytes, str, List[bytes]]:
+async def ann_detail_card(post_id: Union[int, str], is_check_time=False) -> Union[bytes, str, List[bytes]]:
     post_id = str(post_id)
     ann_list = await dna_api.get_ann_list(True)
     if not ann_list:
@@ -98,9 +92,7 @@ async def ann_detail_card(
     if is_check_time:
         post_time = format_post_time(post_detail["postTime"])
         now_time = int(time.time())
-        logger.debug(
-            f"公告id: {post_id}, post_time: {post_time}, now_time: {now_time}, delta: {now_time-post_time}"
-        )
+        logger.debug(f"公告id: {post_id}, post_time: {post_time}, now_time: {now_time}, delta: {now_time - post_time}")
         if post_time and post_time < now_time - 86400:
             return "该公告已过期"
 
@@ -124,11 +116,7 @@ async def ann_detail_card(
                 x_drow_height,
             ) = split_text(content)
             drow_height += x_drow_height + 30
-        elif (
-            content_type == 2
-            and "url" in temp
-            and temp["url"].endswith(("jpg", "png", "jpeg"))
-        ):
+        elif content_type == 2 and "url" in temp and temp["url"].endswith(("jpg", "png", "jpeg")):
             # 图片
             img = await download_pic_from_url(ANN_CARD_PATH, temp["url"])
             img_height = img.size[1]

@@ -1,5 +1,5 @@
-import random
 import time
+import random
 from pathlib import Path
 
 from PIL import Image, ImageDraw
@@ -9,21 +9,21 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils import dna_api
-from ..utils.api.model import DNARoleForToolRes, DNARoleShortNoteRes
-from ..utils.database.models import DNABind
-from ..utils.fonts.dna_fonts import dna_font_30, dna_font_36, dna_font_40
 from ..utils.image import (
     COLOR_GREEN,
     COLOR_WHITE,
     add_footer,
-    get_avatar_title_img,
     get_smooth_drawer,
+    get_avatar_title_img,
 )
+from ..utils.api.model import DNARoleForToolRes, DNARoleShortNoteRes
 from ..utils.msgs.notify import (
     dna_not_found,
-    dna_token_invalid,
     dna_uid_invalid,
+    dna_token_invalid,
 )
+from ..utils.database.models import DNABind
+from ..utils.fonts.dna_fonts import dna_font_30, dna_font_36, dna_font_40
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 bg_list = ["bg2.jpg", "bg3.jpg", "bg5.jpg"]
@@ -43,17 +43,13 @@ async def draw_stamina_img(bot: Bot, ev: Event):
         await dna_token_invalid(bot, ev)
         return
 
-    short_note_info = await dna_api.get_short_note_info(
-        dna_user.cookie, dna_user.dev_code
-    )
+    short_note_info = await dna_api.get_short_note_info(dna_user.cookie, dna_user.dev_code)
     if not short_note_info.is_success:
         await dna_not_found(bot, ev, "日常便签数据")
         return
     short_note_info = DNARoleShortNoteRes.model_validate(short_note_info.data)
 
-    role_for_tool_info = await dna_api.get_default_role_for_tool(
-        dna_user.cookie, dna_user.dev_code
-    )
+    role_for_tool_info = await dna_api.get_default_role_for_tool(dna_user.cookie, dna_user.dev_code)
     if not role_for_tool_info.is_success:
         await dna_not_found(bot, ev, "角色列表信息")
         return
@@ -65,9 +61,7 @@ async def draw_stamina_img(bot: Bot, ev: Event):
 
     role_show = role_for_tool_info.roleInfo.roleShow
     other_info = [
-        (i.paramKey, i.paramValue)
-        for i in role_show.params
-        if i.paramKey in ("总活跃天数", "成就达成", "获得角色数")
+        (i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "成就达成", "获得角色数")
     ]
     # title
     avatar_title = await get_avatar_title_img(
@@ -126,9 +120,7 @@ async def draw_stamina_img(bot: Bot, ev: Event):
         progress = int(152 + 837 * progress_per)
 
         # 进度条 总长度为837
-        get_smooth_drawer().rounded_rectangle(
-            (152, 73, progress, 90), 10, COLOR_WHITE, target=bar_bg_temp
-        )
+        get_smooth_drawer().rounded_rectangle((152, 73, progress, 90), 10, COLOR_WHITE, target=bar_bg_temp)
 
         card.alpha_composite(bar_bg_temp, (80, 400 + index * 150))
 
@@ -140,9 +132,7 @@ async def draw_stamina_img(bot: Bot, ev: Event):
         for index, draft in enumerate(draft_info.draftDoingInfo):
             draft_bg = Image.open(TEXT_PATH / "draft_bg.png")
             draft_bg_draw = ImageDraw.Draw(draft_bg)
-            draft_bg_draw.text(
-                (115, 33), draft.productName, COLOR_WHITE, dna_font_36, "lm"
-            )
+            draft_bg_draw.text((115, 33), draft.productName, COLOR_WHITE, dna_font_36, "lm")
 
             if time_now > int(draft.endTime):
                 # 已完成
@@ -161,9 +151,7 @@ async def draw_stamina_img(bot: Bot, ev: Event):
                 )
 
             # 2*2 4个 先上下两行 再左右两列
-            card.alpha_composite(
-                draft_bg, (30 + index // 2 * 590, 840 + index % 2 * 100)
-            )
+            card.alpha_composite(draft_bg, (30 + index // 2 * 590, 840 + index % 2 * 100))
 
     card = add_footer(card, 600)
     res = await convert_img(card)

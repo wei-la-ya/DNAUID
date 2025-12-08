@@ -1,7 +1,7 @@
 import json
 import random
+from typing import List, Final
 from pathlib import Path
-from typing import Final, List
 
 DEFAULT_TEMPLATES: Final[List[str]] = [
     "互评",

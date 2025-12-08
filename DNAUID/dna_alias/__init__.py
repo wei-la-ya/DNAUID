@@ -1,17 +1,17 @@
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
-from ..utils.constants.constants import PATTERN
-from ..utils.name_convert import load_alias_data, refresh_name_convert
 from .alias_ops import (
+    char_alias_list,
     action_char_alias,
+    weapon_alias_list,
     action_weapon_alias,
     all_char_list_alias,
     all_weapon_list_alias,
-    char_alias_list,
-    weapon_alias_list,
 )
+from ..utils.name_convert import load_alias_data, refresh_name_convert
+from ..utils.constants.constants import PATTERN
 
 sv_alias = SV("dna别名", pm=0, priority=0)
 sv_recover_alias = SV("dna别名恢复", pm=0)
@@ -42,9 +42,7 @@ async def handle_add_alias(bot: Bot, ev: Event):
     await bot.send(msg)
 
 
-@sv_list_alias.on_regex(
-    rf"^(?P<alias_type>角色|武器)?(?P<name>{PATTERN})别名(列表)?$", block=True
-)
+@sv_list_alias.on_regex(rf"^(?P<alias_type>角色|武器)?(?P<name>{PATTERN})别名(列表)?$", block=True)
 async def handle_list_alias(bot: Bot, ev: Event):
     alias_type = ev.regex_dict.get("alias_type")
     is_weapon = alias_type == "武器"

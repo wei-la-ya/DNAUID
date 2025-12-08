@@ -1,19 +1,19 @@
 import asyncio
 import functools
-from typing import Any, Dict, List, Optional, Type, TypeVar
+from typing import Any, Dict, List, Type, TypeVar, Optional
 
-from sqlalchemy import delete, null, update
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.sql import and_, or_
 from sqlmodel import Field, col, select
+from sqlalchemy import null, delete, update
+from sqlalchemy.sql import or_, and_
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from gsuid_core.webconsole.mount_app import PageSchema, GsAdminModel, site
 from gsuid_core.utils.database.base_models import (
-    BaseIDModel,
     Bind,
     User,
+    BaseIDModel,
     with_session,
 )
-from gsuid_core.webconsole.mount_app import GsAdminModel, PageSchema, site
 
 from ..utils import get_today_date
 
@@ -40,12 +40,8 @@ class DNABind(Bind, table=True):
 
     @classmethod
     @with_session
-    async def get_group_all_uid(
-        cls: Type[T_DNABind], session: AsyncSession, group_id: str
-    ) -> List[T_DNABind]:
-        result = await session.scalars(
-            select(cls).where(col(cls.group_id).contains(group_id))
-        )
+    async def get_group_all_uid(cls: Type[T_DNABind], session: AsyncSession, group_id: str) -> List[T_DNABind]:
+        result = await session.scalars(select(cls).where(col(cls.group_id).contains(group_id)))
         return list(result.all()) if result else []
 
     @classmethod
@@ -75,9 +71,7 @@ class DNABind(Bind, table=True):
 
         # 第一次绑定
         if not await cls.bind_exists(user_id, bot_id):
-            code = await cls.insert_data(
-                user_id=user_id, bot_id=bot_id, **{"uid": uid, "group_id": group_id}
-            )
+            code = await cls.insert_data(user_id=user_id, bot_id=bot_id, **{"uid": uid, "group_id": group_id})
             return code
 
         # 获取历史
@@ -101,15 +95,8 @@ class DNAUser(User, table=True):
 
     @classmethod
     @with_session
-    async def mark_cookie_invalid(
-        cls: Type[T_DNAUser], session: AsyncSession, uid: str, cookie: str, mark: str
-    ):
-        sql = (
-            update(cls)
-            .where(col(cls.uid) == uid)
-            .where(col(cls.cookie) == cookie)
-            .values(status=mark)
-        )
+    async def mark_cookie_invalid(cls: Type[T_DNAUser], session: AsyncSession, uid: str, cookie: str, mark: str):
+        sql = update(cls).where(col(cls.uid) == uid).where(col(cls.cookie) == cookie).values(status=mark)
         await session.execute(sql)
         return True
 
@@ -186,9 +173,7 @@ class DNAUser(User, table=True):
 
     @classmethod
     @with_session
-    async def select_data_by_cookie(
-        cls: Type[T_DNAUser], session: AsyncSession, cookie: str
-    ) -> Optional[T_DNAUser]:
+    async def select_data_by_cookie(cls: Type[T_DNAUser], session: AsyncSession, cookie: str) -> Optional[T_DNAUser]:
         sql = select(cls).where(cls.cookie == cookie)
         result = await session.execute(sql)
         data = result.scalars().all()
@@ -222,9 +207,7 @@ class DNAUser(User, table=True):
 
     @classmethod
     @with_session
-    async def get_dna_all_user(
-        cls: Type[T_DNAUser], session: AsyncSession
-    ) -> List[T_DNAUser]:
+    async def get_dna_all_user(cls: Type[T_DNAUser], session: AsyncSession) -> List[T_DNAUser]:
         """获取所有有效用户"""
         sql = select(cls).where(
             and_(
@@ -315,9 +298,7 @@ class DNASign(BaseIDModel, table=True):
         dna_sign_data.date = dna_sign_data.date or get_today_date()
 
         # 查询是否存在记录
-        record = await cls._find_sign_record(
-            session, dna_sign_data.uid, dna_sign_data.date
-        )
+        record = await cls._find_sign_record(session, dna_sign_data.uid, dna_sign_data.date)
 
         if record:
             # 更新已有记录

@@ -9,21 +9,21 @@ from gsuid_core.models import Event
 from gsuid_core.segment import MessageSegment
 from gsuid_core.utils.boardcast.models import BoardCastMsg, BoardCastMsgDict
 
-from ..dna_config.dna_config import DNASignConfig
-from ..utils.boardcast import send_board_cast_msg
-from ..utils.constants.boardcast import BoardcastTypeEnum
-from ..utils.database.models import DNAUser
-from ..utils.fonts.dna_fonts import dna_font_24
-from ..utils.msgs.notify import send_dna_notify
 from .sign_service import (
     SignService,
-    can_bbs_sign,
     can_sign,
-    get_sign_interval,
-    master_sign,
     sched_sign,
+    master_sign,
+    can_bbs_sign,
+    get_sign_interval,
     sign_concurrent_num,
 )
+from ..utils.boardcast import send_board_cast_msg
+from ..utils.msgs.notify import send_dna_notify
+from ..dna_config.dna_config import DNASignConfig
+from ..utils.database.models import DNAUser
+from ..utils.fonts.dna_fonts import dna_font_24
+from ..utils.constants.boardcast import BoardcastTypeEnum
 
 
 async def sign_task(
@@ -184,18 +184,14 @@ async def auto_sign():
         logger.info(f"[DNAUID] [自动签到] 等待{delay:.2f}秒进行下一次签到")
         await asyncio.sleep(delay)
 
-    sign_result = await to_board_cast_msg(
-        private_sign_msgs, group_sign_msgs, "游戏签到", theme="blue"
-    )
+    sign_result = await to_board_cast_msg(private_sign_msgs, group_sign_msgs, "游戏签到", theme="blue")
     if not DNASignConfig.get_config("PrivateSignReport").data:
         sign_result["private_msg_dict"] = {}
     if not DNASignConfig.get_config("GroupSignReport").data:
         sign_result["group_msg_dict"] = {}
     await send_board_cast_msg(sign_result, BoardcastTypeEnum.SIGN_DNA)
 
-    bbs_result = await to_board_cast_msg(
-        private_bbs_msgs, group_bbs_msgs, "社区签到", theme="yellow"
-    )
+    bbs_result = await to_board_cast_msg(private_bbs_msgs, group_bbs_msgs, "社区签到", theme="yellow")
     if not DNASignConfig.get_config("PrivateSignReport").data:
         bbs_result["private_msg_dict"] = {}
     if not DNASignConfig.get_config("GroupSignReport").data:
@@ -344,9 +340,7 @@ async def msg_sign(
     if gid == "on":
         if qid not in private_msgs:
             private_msgs[qid] = []
-        private_msgs[qid].append(
-            {"bot_id": bot_id, "uid": uid, "msg": [MessageSegment.text(content=im)]}
-        )
+        private_msgs[qid].append({"bot_id": bot_id, "uid": uid, "msg": [MessageSegment.text(content=im)]})
         if "失败" in im:
             all_msgs["failed"] += 1
         else:

@@ -1,5 +1,5 @@
-from pathlib import Path
 from typing import Optional
+from pathlib import Path
 
 from PIL import Image, ImageDraw
 
@@ -8,11 +8,34 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils import dna_api
+from ..utils.image import (
+    COLOR_WHITE,
+    COLOR_SALMON,
+    COLOR_GOLDENROD,
+    COLOR_FIRE_BRICK,
+    get_div,
+    add_footer,
+    get_dna_bg,
+    get_mod_img,
+    get_attr_img,
+    get_grade_img,
+    get_paint_img,
+    get_skill_img,
+    get_smooth_drawer,
+    get_avatar_title_img,
+)
 from ..utils.api.model import (
+    RoleInsForTool,
     DNARoleDetailRes,
     DNARoleForToolRes,
-    RoleInsForTool,
 )
+from ..utils.msgs.notify import (
+    dna_not_found,
+    dna_uid_invalid,
+    dna_not_unlocked,
+    dna_token_invalid,
+)
+from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 from ..utils.database.models import DNABind
 from ..utils.fonts.dna_fonts import (
     dna_font_18,
@@ -20,29 +43,6 @@ from ..utils.fonts.dna_fonts import (
     dna_font_26,
     dna_font_30,
 )
-from ..utils.image import (
-    COLOR_FIRE_BRICK,
-    COLOR_GOLDENROD,
-    COLOR_SALMON,
-    COLOR_WHITE,
-    add_footer,
-    get_attr_img,
-    get_avatar_title_img,
-    get_div,
-    get_dna_bg,
-    get_grade_img,
-    get_mod_img,
-    get_paint_img,
-    get_skill_img,
-    get_smooth_drawer,
-)
-from ..utils.msgs.notify import (
-    dna_not_found,
-    dna_not_unlocked,
-    dna_token_invalid,
-    dna_uid_invalid,
-)
-from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 prop_info_bar1 = Image.open(TEXT_PATH / "prop_info_bar1.png")
@@ -88,9 +88,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         return
     char_name = real_char_name
 
-    default_role = await dna_api.get_default_role_for_tool(
-        dna_user.cookie, dna_user.dev_code
-    )
+    default_role = await dna_api.get_default_role_for_tool(dna_user.cookie, dna_user.dev_code)
     if not default_role.is_success:
         await dna_not_found(bot, ev, "角色列表信息")
         return
@@ -109,9 +107,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         await dna_not_unlocked(bot, ev, f"当前展柜角色【{char_name}】")
         return
 
-    role_detail = await dna_api.get_role_detail(
-        dna_user.cookie, char_id, role_char_simple.charEid, dna_user.dev_code
-    )
+    role_detail = await dna_api.get_role_detail(dna_user.cookie, char_id, role_char_simple.charEid, dna_user.dev_code)
     if not role_detail.is_success:
         await dna_not_found(bot, ev, f"角色【{char_name}】详情")
         return
@@ -140,20 +136,14 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
     # 命座
     grade_img = get_grade_img(role_detail.gradeLevel)
     ellipse = Image.new("RGBA", (34, 35))
-    get_smooth_drawer().rounded_rectangle(
-        (0, 0, 34, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse
-    )
+    get_smooth_drawer().rounded_rectangle((0, 0, 34, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse)
     ellipse.alpha_composite(grade_img, (0, 5))
     info_bg.alpha_composite(ellipse, (50, 60))
     # 等级
     ellipse = Image.new("RGBA", (80, 35))
     ellipse_draw = ImageDraw.Draw(ellipse)
-    get_smooth_drawer().rounded_rectangle(
-        (0, 0, 80, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse
-    )
-    ellipse_draw.text(
-        (40, 17), f"Lv.{role_detail.level}", COLOR_WHITE, dna_font_26, "mm"
-    )
+    get_smooth_drawer().rounded_rectangle((0, 0, 80, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse)
+    ellipse_draw.text((40, 17), f"Lv.{role_detail.level}", COLOR_WHITE, dna_font_26, "mm")
     info_bg.alpha_composite(ellipse, (100, 60))
 
     card.alpha_composite(info_bg, (550, 80))
@@ -161,15 +151,9 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
     # 命座解锁
     grade_unlock_bg = Image.new("RGBA", (1000, 130), (0, 0, 0, 0))
     for i in range(1, 7):
-        grade_bg = (
-            grade_lock_img.copy()
-            if i > role_detail.gradeLevel
-            else grade_unlock_img.copy()
-        )
+        grade_bg = grade_lock_img.copy() if i > role_detail.gradeLevel else grade_unlock_img.copy()
         grade_img = get_grade_img(i)
-        grade_img = grade_img.resize(
-            (int(grade_img.width * 1.8), int(grade_img.height * 1.8))
-        )
+        grade_img = grade_img.resize((int(grade_img.width * 1.8), int(grade_img.height * 1.8)))
         grade_bg.alpha_composite(grade_img, (33, 37))
         grade_unlock_bg.alpha_composite(grade_bg, (100 + (i - 1) * 150, 0))
 
@@ -197,11 +181,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         # 属性值
         prop_info_draw.text(
             (370, 25),
-            (
-                attr_value
-                if "%" in attr_value or not attr_value.isdigit()
-                else f"{int(attr_value):,}"
-            ),
+            (attr_value if "%" in attr_value or not attr_value.isdigit() else f"{int(attr_value):,}"),
             COLOR_WHITE,
             font=dna_font_26,
             anchor="rm",
@@ -224,9 +204,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
 
         # 技能名字
         if len(skill.skillName) <= 5:
-            skill_bg_draw.text(
-                (120, 55), skill.skillName, COLOR_GOLDENROD, dna_font_24, "lm"
-            )
+            skill_bg_draw.text((120, 55), skill.skillName, COLOR_GOLDENROD, dna_font_24, "lm")
         else:
             skill_bg_draw.text(
                 (120, 55),
@@ -243,9 +221,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
             target=skill_bg,
         )
 
-        skill_bg_draw.text(
-            (160, 94), f"Lv.{skill.level}", COLOR_WHITE, dna_font_26, "mm"
-        )
+        skill_bg_draw.text((160, 94), f"Lv.{skill.level}", COLOR_WHITE, dna_font_26, "mm")
 
         card.alpha_composite(skill_bg, (50 + index * 300, 920))
 
@@ -284,9 +260,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
             mod_bg_draw.text((140, 180), mod.name, COLOR_WHITE, dna_font_26, "mm")
 
         # 2行2列，先左右，再上下
-        all_mod_bg.alpha_composite(
-            mod_bg, (530 + (index % 2) * 180, (index // 2) * 250)
-        )
+        all_mod_bg.alpha_composite(mod_bg, (530 + (index % 2) * 180, (index // 2) * 250))
 
     # 中1
     center_list = role_detail.modes[-1]
@@ -308,15 +282,9 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         role_show.roleId,
         role_show.roleName,
         user_level=role_show.level,
-        other_info=[
-            (i.paramKey, i.paramValue)
-            for i in role_show.params
-            if i.paramKey in ("总活跃天数", "成就达成")
-        ],
+        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "成就达成")],
     )
-    avatar_title = avatar_title.resize(
-        (1000, 1000 * avatar_title.height // avatar_title.width)
-    )
+    avatar_title = avatar_title.resize((1000, 1000 * avatar_title.height // avatar_title.width))
     card.alpha_composite(avatar_title, (0, 1750))
 
     card = add_footer(card, 600)

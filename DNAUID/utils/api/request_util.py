@@ -1,8 +1,8 @@
 import copy
 from enum import IntEnum
-from typing import Generic, Optional, TypeVar, Union
+from typing import Union, Generic, TypeVar, Optional
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field
+from pydantic import Field, BaseModel, ConfigDict, computed_field
 
 CONTENT_TYPE = "application/x-www-form-urlencoded; charset=utf-8"
 

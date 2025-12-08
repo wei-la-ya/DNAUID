@@ -1,9 +1,9 @@
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
-from ..utils.constants.constants import PATTERN
 from .draw_role_card import draw_role_card
+from ..utils.constants.constants import PATTERN
 
 dna_role_detail_card = SV("dna角色详情卡片")
 

@@ -2,19 +2,15 @@
   "python.languageServer": "None",
   "editor.formatOnSave": true,
   "[python]": {
-    "editor.defaultFormatter": "ms-python.black-formatter",
+    "editor.defaultFormatter": "charliermarsh.ruff",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
+      "source.organizeImports": "explicit",
+      "source.fixAll.ruff": "explicit"
     }
   },
-  "python.autoComplete.extraPaths": [
-    "${workspaceFolder}/../../../../"
-  ],
-  "isort.args": [
-    "--profile",
-    "black"
-  ],
+  "python.defaultInterpreterPath": "../../../.venv/bin/python",
+  "basedpyright.analysis.typeCheckingMode": "basic",
   "basedpyright.analysis.extraPaths": [
     "${workspaceFolder}/../../../"
   ],

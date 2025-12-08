@@ -1,18 +1,18 @@
 import re
 
+from gsuid_core.sv import SV
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
-from gsuid_core.sv import SV
 
-from ..dna_config.dna_config import DNAConfig
 from ..utils import dna_api
-from ..utils.database.models import DNABind, DNAUser
+from .login_router import get_cookie, page_login, token_login
 from ..utils.msgs.notify import (
-    dna_bind_uid_result,
     dna_login_fail,
     send_dna_notify,
+    dna_bind_uid_result,
 )
-from .login_router import get_cookie, page_login, token_login
+from ..dna_config.dna_config import DNAConfig
+from ..utils.database.models import DNABind, DNAUser
 
 sv_dna_login = SV("dna登录")
 sv_dna_bind = SV("dna绑定")
@@ -89,9 +89,7 @@ async def send_dna_bind_uid_msg(bot: Bot, ev: Event):
             if len(difference_uid_list) >= max_bind_num:
                 return await dna_bind_uid_result(bot, ev, uid, -4)
 
-        code = await DNABind.insert_uid(
-            qid, ev.bot_id, uid, ev.group_id, lenth_limit=13
-        )
+        code = await DNABind.insert_uid(qid, ev.bot_id, uid, ev.group_id, lenth_limit=13)
         if code == 0 or code == -2:
             retcode = await DNABind.switch_uid_by_game(qid, ev.bot_id, uid)
         return await dna_bind_uid_result(bot, ev, uid, code)

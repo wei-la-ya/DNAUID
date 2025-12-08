@@ -1,7 +1,7 @@
 import random
-from datetime import timedelta
-from pathlib import Path
 from typing import List, Optional
+from pathlib import Path
+from datetime import timedelta
 
 from PIL import Image, ImageDraw
 
@@ -11,19 +11,19 @@ from gsuid_core.models import Event
 from gsuid_core.utils.image.convert import convert_img
 
 from ..utils import get_datetime
-from ..utils.api.mh_map import get_mh_type_name
-from ..utils.api.model import DNARoleForToolInstanceInfo
-from ..utils.fonts.dna_fonts import dna_font_20, dna_font_36, dna_font_40
+from .cache_mh import get_mh_result
 from ..utils.image import (
-    COLOR_GOLDENROD,
     COLOR_GREEN,
-    COLOR_LIGHT_GRAY,
     COLOR_WHITE,
+    COLOR_GOLDENROD,
+    COLOR_LIGHT_GRAY,
     add_footer,
 )
-from ..utils.msgs.notify import send_dna_notify
-from .cache_mh import get_mh_result
 from .subscribe_mh import get_mh_subscribe_list
+from ..utils.api.model import DNARoleForToolInstanceInfo
+from ..utils.api.mh_map import get_mh_type_name
+from ..utils.msgs.notify import send_dna_notify
+from ..utils.fonts.dna_fonts import dna_font_20, dna_font_36, dna_font_40
 
 TEXT_PATH = Path(__file__).parent / "texture2d"
 bg_list = ["bg1.jpg", "bg2.jpg", "bg3.jpg"]
@@ -68,8 +68,7 @@ async def draw_mh_card(
             bar_bg_temp = bar_bg.copy()
             bar_bg_draw = ImageDraw.Draw(bar_bg_temp)
             if subscribe_list and (
-                ins.name in subscribe_list
-                or f"{get_mh_type_name(mh.mh_type)}:{ins.name}" in subscribe_list
+                ins.name in subscribe_list or f"{get_mh_type_name(mh.mh_type)}:{ins.name}" in subscribe_list
             ):
                 ins_color = COLOR_GREEN
             else:
@@ -88,7 +87,10 @@ async def draw_mh_card(
     refresh_bg = Image.open(TEXT_PATH / "refresh_time.png")
     draw_refresh_bg = ImageDraw.Draw(refresh_bg)
     draw_refresh_bg.text(
-        (60, 25), f"{format_seconds(remaining_seconds)}后刷新", COLOR_WHITE, dna_font_20
+        (60, 25),
+        f"{format_seconds(remaining_seconds)}后刷新",
+        COLOR_WHITE,
+        dna_font_20,
     )
     card.alpha_composite(refresh_bg, (1400, 20))
 
