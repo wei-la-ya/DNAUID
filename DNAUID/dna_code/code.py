@@ -6,7 +6,7 @@ from gsuid_core.logger import logger
 from gsuid_core.models import Event
 import aiohttp
 
-async def get_cdk_info(bot: Bot, ev: Event):
+async def get_dna_code_info(bot: Bot, ev: Event):
     url = "https://www.gamekee.com/v1/game/cdk/queryByServerIdPageList?limit=10&page_no=1&page_total=1&total=0&server_id=110&state=2&nick_name="
     
     headers = {
@@ -28,34 +28,34 @@ async def get_cdk_info(bot: Bot, ev: Event):
                 data = await response.json()
         
         if data.get("code") == 0:
-            cdks = data.get("data", [])
+            dna_codes = data.get("data", [])
             
-            if cdks:
-                cdk_groups = {}
-                for cdk in cdks:
-                    end_at = cdk.get("end_at")
-                    if end_at not in cdk_groups:
-                        cdk_groups[end_at] = []
-                    cdk_groups[end_at].append(cdk)
+            if dna_codes:
+                dna_code_groups = {}
+                for dna_code in dna_codes:
+                    end_at = dna_code.get("end_at")
+                    if end_at not in dna_code_groups:
+                        dna_code_groups[end_at] = []
+                    dna_code_groups[end_at].append(dna_code)
                 
-                valid_cdk_groups = {}
+                valid_dna_code_groups = {}
                 current_time = datetime.datetime.now()
-                for end_at, group_cdks in cdk_groups.items():
+                for end_at, group_dna_codes in dna_code_groups.items():
                     end_time = datetime.datetime.fromtimestamp(end_at)
                     if end_time > current_time:
-                        valid_cdk_groups[end_at] = group_cdks
+                        valid_dna_code_groups[end_at] = group_dna_codes
                 
-                if not valid_cdk_groups:
+                if not valid_dna_code_groups:
                     await bot.send("[DNA兑换码] 暂无兑换码")
                 else:
-                    for end_at, group_cdks in valid_cdk_groups.items():
+                    for end_at, group_dna_codes in valid_dna_code_groups.items():
                         end_time = datetime.datetime.fromtimestamp(end_at)
                         end_time_str = end_time.strftime("%Y-%m-%d %H:%M:%S")
                         
                         await bot.send(f"[DNA兑换码] 过期时间: {end_time_str}")
                         
-                        for cdk in group_cdks:
-                            code = cdk.get("code")
+                        for dna_code in group_dna_codes:
+                            code = dna_code.get("code")
                             await bot.send(f"{code}")
             else:
                 await bot.send("[DNA兑换码] 暂无兑换码")
