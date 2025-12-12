@@ -1,14 +1,15 @@
-import asyncio
 import datetime
+
+import aiohttp
 
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
 from gsuid_core.models import Event
-import aiohttp
+
 
 async def get_dna_code_info(bot: Bot, ev: Event):
     url = "https://www.gamekee.com/v1/game/cdk/queryByServerIdPageList?limit=10&page_no=1&page_total=1&total=0&server_id=110&state=2&nick_name="
-    
+
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36 Edg/143.0.0.0",
         "Referer": "https://www.gamekee.com/dna/redemptionCode/110",
@@ -17,19 +18,19 @@ async def get_dna_code_info(bot: Bot, ev: Event):
         "Game-Alias": "dna",
         "Device-Num": "1",
         "Lang": "zh-cn",
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
     }
-    
+
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers) as response:
                 response.raise_for_status()  # 检查请求是否成功
-                
+
                 data = await response.json()
-        
+
         if data.get("code") == 0:
             dna_codes = data.get("data", [])
-            
+
             if dna_codes:
                 dna_code_groups = {}
                 for dna_code in dna_codes:
@@ -37,23 +38,23 @@ async def get_dna_code_info(bot: Bot, ev: Event):
                     if end_at not in dna_code_groups:
                         dna_code_groups[end_at] = []
                     dna_code_groups[end_at].append(dna_code)
-                
+
                 valid_dna_code_groups = {}
                 current_time = datetime.datetime.now()
                 for end_at, group_dna_codes in dna_code_groups.items():
                     end_time = datetime.datetime.fromtimestamp(end_at)
                     if end_time > current_time:
                         valid_dna_code_groups[end_at] = group_dna_codes
-                
+
                 if not valid_dna_code_groups:
                     await bot.send("[DNA兑换码] 暂无兑换码")
                 else:
                     for end_at, group_dna_codes in valid_dna_code_groups.items():
                         end_time = datetime.datetime.fromtimestamp(end_at)
                         end_time_str = end_time.strftime("%Y-%m-%d %H:%M:%S")
-                        
+
                         await bot.send(f"[DNA兑换码] 过期时间: {end_time_str}")
-                        
+
                         for dna_code in group_dna_codes:
                             code = dna_code.get("code")
                             await bot.send(f"{code}")
@@ -61,7 +62,7 @@ async def get_dna_code_info(bot: Bot, ev: Event):
                 await bot.send("[DNA兑换码] 暂无兑换码")
         else:
             await bot.send(f"[DNA兑换码] 请求失败: {data.get('msg')}")
-            
+
     except aiohttp.ClientError as e:
         logger.error(f"[DNA兑换码] 网络请求错误: {e}")
         await bot.send(f"[DNA兑换码] 网络请求错误: {e}")
