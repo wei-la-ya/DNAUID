@@ -73,6 +73,6 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         "角色攻略图提供方",
         "使用DNA角色攻略时选择的提供方",
         ["all"],
-        options=["all", "狩月庭攻略组"],
+        options=["all", "狩月庭攻略组", "猫冬"],
     ),
 }

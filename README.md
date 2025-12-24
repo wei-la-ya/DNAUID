@@ -13,31 +13,30 @@
 ## 丨安装提醒
 
 > **注意：该插件为[早柚核心(gsuid_core)](https://github.com/Genshin-bots/gsuid_core)
-的扩展，具体安装方式可参考[GenshinUID](https://github.com/KimigaiiWuyi/GenshinUID)**
+> 的扩展，具体安装方式可参考[GenshinUID](https://github.com/KimigaiiWuyi/GenshinUID)**
 >
-> **如果已经是最新版本的`gsuid_core`, 可以直接对bot发送`core安装插件DNAUID`，然后重启core以应用安装**
->
+> **如果已经是最新版本的`gsuid_core`, 可以直接对 bot 发送`core安装插件DNAUID`，然后重启 core 以应用安装**
 >
 > 如使用命令缺失素材可尝试使用命令`dna下载全部资源`
 >
-> 支持NoneBot2 & HoshinoBot & ZeroBot & YunzaiBot的二重螺旋Bot插件
+> 支持 NoneBot2 & HoshinoBot & ZeroBot & YunzaiBot 的二重螺旋 Bot 插件
 >
-> 🚧插件目前还在施工中，功能快速迭代中...🚧
+> 🚧 插件目前还在施工中，功能快速迭代中...🚧
 >
 > 交流反馈群 662548513
 >
-> ✨如果需要添加其他二重螺旋相关功能欢迎在issues中提出✨
->
+> ✨ 如果需要添加其他二重螺旋相关功能欢迎在 issues 中提出 ✨
 
 ## 丨其他
 
-+ 本项目仅供学习使用，请勿用于商业用途
-+ [GPL-3.0 License](https://github.com/tyql688/DNAUID/blob/master/LICENSE)
+- 本项目仅供学习使用，请勿用于商业用途
+- [GPL-3.0 License](https://github.com/tyql688/DNAUID/blob/master/LICENSE)
 
 ## 致谢
 
-- [Wuyi无疑](https://github.com/KimigaiiWuyi) 
+- [Wuyi 无疑](https://github.com/KimigaiiWuyi)
 
 ## 攻略组
 
 - [狩月庭攻略组](https://space.bilibili.com/3546915226519877)
+- [猫冬](https://space.bilibili.com/91489061)
