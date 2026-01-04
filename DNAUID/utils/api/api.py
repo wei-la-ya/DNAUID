@@ -34,3 +34,7 @@ REPLY_POST_URL = f"{MAIN_URL}/forum/comment/createComment"
 
 # ann
 ANN_LIST_URL = f"{MAIN_URL}/user/mine"
+
+
+# calendar
+CALENDAR_LIST_URL = f"{MAIN_URL}/forum/wiki/home/page/list"

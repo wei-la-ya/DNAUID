@@ -38,6 +38,7 @@ CUSTOM_PAINT_PATH = CUSTOM_PATH / "custom_paint"  # 自定义立绘
 OTHER_PATH = MAIN_PATH / "other"
 SIGN_PATH = OTHER_PATH / "sign"
 ANN_CARD_PATH = OTHER_PATH / "ann_card"
+CALENDAR_PATH = OTHER_PATH / "calendar"
 
 
 def init_dir():

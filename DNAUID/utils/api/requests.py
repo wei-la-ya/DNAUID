@@ -21,6 +21,7 @@ from .api import (
     SHORT_NOTE_URL,
     ROLE_DETAIL_URL,
     HAVE_SIGN_IN_URL,
+    CALENDAR_LIST_URL,
     GET_POST_LIST_URL,
     ROLE_FOR_TOOL_URL,
     SIGN_CALENDAR_URL,
@@ -303,6 +304,14 @@ class DNAApi:
         if res.is_success and isinstance(res.data, dict):
             self.ann_list_data = res.data.get("postList", [])
         return self.ann_list_data
+
+    async def get_calendar_info(self):
+        headers = await get_base_header(is_h5=True, is_need_origin=True, is_need_refer=True)
+        data = {}
+        res = await self._dna_request(CALENDAR_LIST_URL, "POST", headers, data=data)
+        if res.is_success and isinstance(res.data, dict):
+            return res.data.get("vos", [])
+        return []
 
     async def _dna_request(
         self,
