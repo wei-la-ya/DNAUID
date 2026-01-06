@@ -5,6 +5,7 @@ def get_main_url():
 MAIN_URL = get_main_url()
 LOGIN_URL = f"{MAIN_URL}/user/sdkLogin"
 GET_RSA_PUBLIC_KEY_URL = f"{MAIN_URL}/config/getRsaPublicKey"
+GET_SMS_CODE_URL = f"{MAIN_URL}/user/getSmsCode"
 LOGIN_LOG_URL = f"{MAIN_URL}/user/login/log"
 ROLE_LIST_URL = f"{MAIN_URL}/role/list"
 ROLE_FOR_TOOL_URL = f"{MAIN_URL}/role/defaultRoleForTool"

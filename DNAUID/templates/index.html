@@ -21,11 +21,11 @@
         margin: 0;
         padding: 0;
         height: 100%;
-        font-family: "Microsoft YaHei", sans-serif;
+        font-family: 'Microsoft YaHei', sans-serif;
       }
 
       body {
-        background-image: url("https://herobox-img.yingxiong.com/post/1748784746036602530.jpg");
+        background-image: url('https://herobox-img.yingxiong.com/post/1748784746036602530.jpg');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -35,7 +35,7 @@
       }
 
       body::before {
-        content: "";
+        content: '';
         position: fixed;
         top: 0;
         left: 0;
@@ -129,8 +129,8 @@
         font-weight: 500;
       }
 
-      input[type="tel"],
-      input[type="text"] {
+      input[type='tel'],
+      input[type='text'] {
         width: 100%;
         padding: 0.75rem;
         border: none;
@@ -141,8 +141,8 @@
         transition: all 0.3s ease;
       }
 
-      input[type="tel"]:focus,
-      input[type="text"]:focus {
+      input[type='tel']:focus,
+      input[type='text']:focus {
         outline: none;
         box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.6);
       }
@@ -300,51 +300,46 @@
     </div>
 
     <script>
-      const phoneInput = document.getElementById("phone");
-      const verificationCodeInput = document.getElementById("verificationCode");
-      const getCodeBtn = document.getElementById("getCodeBtn");
-      const loginBtn = document.getElementById("loginBtn");
-      const loginForm = document.getElementById("loginForm");
-      const toastContainer = document.getElementById("toastContainer");
+      const phoneInput = document.getElementById('phone')
+      const verificationCodeInput = document.getElementById('verificationCode')
+      const getCodeBtn = document.getElementById('getCodeBtn')
+      const loginBtn = document.getElementById('loginBtn')
+      const loginForm = document.getElementById('loginForm')
+      const toastContainer = document.getElementById('toastContainer')
 
       // 通用 Toast 提示函数
-      function showToast(message, type = "info", duration = 3000) {
-        const toast = document.createElement("div");
-        toast.className = `toast ${type}`;
-        toast.textContent = message;
-        toastContainer.appendChild(toast);
+      function showToast(message, type = 'info', duration = 3000) {
+        const toast = document.createElement('div')
+        toast.className = `toast ${type}`
+        toast.textContent = message
+        toastContainer.appendChild(toast)
 
         // 触发显示动画
         setTimeout(() => {
-          toast.classList.add("show");
-        }, 10);
+          toast.classList.add('show')
+        }, 10)
 
         // 自动隐藏
         setTimeout(() => {
-          toast.classList.remove("show");
-          toast.classList.add("hide");
+          toast.classList.remove('show')
+          toast.classList.add('hide')
           setTimeout(() => {
-            toastContainer.removeChild(toast);
-          }, 400);
-        }, duration);
+            toastContainer.removeChild(toast)
+          }, 400)
+        }, duration)
       }
 
-      phoneInput.addEventListener("input", function () {
-        getCodeBtn.disabled = this.value.length !== 11;
-        loginBtn.disabled = this.value.length !== 11 || verificationCodeInput.value === "";
-      });
+      phoneInput.addEventListener('input', function () {
+        getCodeBtn.disabled = this.value.length !== 11
+        loginBtn.disabled = this.value.length !== 11 || verificationCodeInput.value === ''
+      })
 
-      verificationCodeInput.addEventListener("input", function () {
-        loginBtn.disabled = this.value === "" || phoneInput.value.length !== 11;
-      });
+      verificationCodeInput.addEventListener('input', function () {
+        loginBtn.disabled = this.value === '' || phoneInput.value.length !== 11
+      })
 
-      const devCode = generateUUID();
-      const contentType = "application/x-www-form-urlencoded; charset=utf-8";
-
-      const captchaId = "a9d7b33f6daf81efea5e3dcea8d92bd7"; // ios
-      const product = "bind";
-      const source = "ios";
-      const version = "3.11.0";
+      const captchaId = 'a9d7b33f6daf81efea5e3dcea8d92bd7' // ios
+      const product = 'bind'
 
       window.initAlicom4(
         {
@@ -357,119 +352,97 @@
             .onReady(function () {})
             .onNextReady(function () {})
             .onSuccess(function () {
-              var result = captcha.getValidate();
+              var result = captcha.getValidate()
               if (!result) {
-                return showToast("请完成验证", "warning");
+                return showToast('请完成验证', 'warning')
               }
-              result.captcha_id = captchaId;
-              const currentTimeStamp = Date.now();
+              result.captcha_id = captchaId
+
+              const data = {
+                mobile: phoneInput.value,
+                vJson: JSON.stringify(result),
+              }
+
               $.ajax({
-                url: "https://dnabbs-api.yingxiong.com/user/getSmsCode",
-                type: "POST",
-                data: {
-                  isCaptcha: 1,
-                  mobile: phoneInput.value,
-                  vJson: JSON.stringify(result),
-                  timestamp: Date.now(),
+                url: '{{ server_url }}/dna/getSmsCode',
+                type: 'POST',
+                data: JSON.stringify(data),
+                contentType: 'application/json',
+                success: (res) => {
+                  if (res.success) {
+                    showToast('验证码已发送', 'success')
+                  } else {
+                    showToast('验证码发送失败' + (res.msg ? ': ' + res.msg : '，请重试'), 'error')
+                  }
                 },
-                headers: {
-                  devcode: devCode,
-                  source: source,
-                  version: version,
-                  "content-type": contentType,
-                },
-                success: (res) =>
-                  showToast(
-                    res.success ? "验证码已发送" : "验证码发送失败: " + res.msg,
-                    res.success ? "success" : "error",
-                  ),
-                error: () => showToast("请求出错，请检查网络连接", "error"),
-              });
+                error: () => showToast('请求出错，请检查网络连接', 'error'),
+              })
             })
             .onFail(function (fail) {
-              console.log(fail);
+              console.log(fail)
             })
             .onError(function (error) {
-              console.log(error);
-            });
+              console.log(error)
+            })
 
           getCodeBtn.onclick = function () {
-            this.disabled = true;
-            let countdown = 60;
-            const originalText = this.textContent;
+            this.disabled = true
+            let countdown = 60
+            const originalText = this.textContent
 
-            captcha.showCaptcha();
+            captcha.showCaptcha()
 
             const timer = setInterval(() => {
-              this.textContent = `${countdown}秒后重试`;
-              countdown--;
+              this.textContent = `${countdown}秒后重试`
+              countdown--
               if (countdown < 0) {
-                clearInterval(timer);
-                this.textContent = originalText;
-                this.disabled = false;
-                captcha.destroy();
+                clearInterval(timer)
+                this.textContent = originalText
+                this.disabled = false
+                captcha.destroy()
               }
-            }, 1000);
-          };
+            }, 1000)
+          }
         },
-      );
+      )
 
-      loginForm.addEventListener("submit", function (e) {
+      loginForm.addEventListener('submit', function (e) {
         const data = {
           mobile: phoneInput.value,
           code: verificationCodeInput.value,
-          auth: "{{ auth }}",
-          user_id: "{{ userId }}",
-        };
-        e.preventDefault();
+          auth: '{{ auth }}',
+          user_id: '{{ userId }}',
+        }
+        e.preventDefault()
         $.ajax({
-          url: "{{ server_url }}/dna/login",
-          type: "POST",
+          url: '{{ server_url }}/dna/login',
+          type: 'POST',
           data: JSON.stringify(data),
-          contentType: "application/json",
+          contentType: 'application/json',
           success: (res) => {
             if (res.success) {
-              showToast("正在尝试登录...正在跳转...", "success", 2000);
+              showToast('正在尝试登录...正在跳转...', 'success', 2000)
               setTimeout(() => {
-                window.location.href = "https://github.com/tyql688/DNAUID";
-              }, 2000);
+                window.location.href = 'https://github.com/tyql688/DNAUID'
+              }, 2000)
             } else {
-              showToast("登录失败" + (res.msg ? ": " + res.msg : "，请重试"), "error");
+              showToast('登录失败' + (res.msg ? ': ' + res.msg : '，请重试'), 'error')
             }
           },
-          error: () => showToast("登录失败，请重试", "error"),
-        });
-      });
+          error: () => showToast('登录失败，请重试', 'error'),
+        })
+      })
 
       function loadBackgroundImage() {
-        const img = new Image();
+        const img = new Image()
         img.onload = function () {
-          document.body.style.backgroundImage = `url(${img.src})`;
-          document.body.classList.add("bg-loaded");
-        };
-        img.src = "https://herobox-img.yingxiong.com/post/1748784746036602530.jpg";
-      }
-
-      window.addEventListener("load", loadBackgroundImage);
-
-      function generateUUID() {
-        let id = localStorage.getItem("s_uuid");
-        if (!id) {
-          if (window.crypto && window.crypto.getRandomValues) {
-            id = ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
-              (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16),
-            );
-          } else {
-            id = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
-              var r = (Math.random() * 16) | 0;
-              var v = c === "x" ? r : (r & 0x3) | 0x8;
-              return v.toString(16);
-            });
-          }
-          localStorage.setItem("s_uuid", id);
+          document.body.style.backgroundImage = `url(${img.src})`
+          document.body.classList.add('bg-loaded')
         }
-        return id;
+        img.src = 'https://herobox-img.yingxiong.com/post/1748784746036602530.jpg'
       }
+
+      window.addEventListener('load', loadBackgroundImage)
     </script>
   </body>
 </html>

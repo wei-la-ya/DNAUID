@@ -1,3 +1,4 @@
+import uuid
 import asyncio
 from typing import Union, Optional
 from pathlib import Path
@@ -15,7 +16,7 @@ from gsuid_core.segment import MessageSegment
 from gsuid_core.web_app import app
 from gsuid_core.utils.cookie_manager.qrlogin import get_qrcode_base64
 
-from ..utils import TimedCache, get_public_ip
+from ..utils import TimedCache, dna_api, get_public_ip
 from .login_helps import (
     get_token,
     is_validate_code,
@@ -265,3 +266,30 @@ async def dna_login(data: LoginParams):
 
     cache.set(data.auth, data)
     return {"success": True}
+
+
+class GetSmsCodeParams(BaseModel):
+    mobile: Union[str, int]
+    vJson: str
+
+
+@app.post("/dna/getSmsCode")
+async def dna_get_sms_code(data: GetSmsCodeParams):
+    """获取短信验证码接口"""
+    try:
+        if not is_valid_chinese_phone_number(str(data.mobile)):
+            return {"success": False, "msg": "无效的手机号"}
+
+        # 生成设备码
+        dev_code = str(uuid.uuid4()).upper()
+
+        # 调用 DNA API 获取验证码
+        result = await dna_api.get_sms_code(data.mobile, data.vJson, dev_code)
+
+        if result.is_success:
+            return {"success": True, "msg": "验证码已发送"}
+        else:
+            return {"success": False, "msg": result.throw_msg()}
+    except Exception as e:
+        logger.error("获取验证码失败", e)
+        return {"success": False, "msg": "获取验证码失败，请稍后重试"}
