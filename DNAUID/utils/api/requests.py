@@ -44,6 +44,27 @@ from ..constants.constants import DNA_GAME_ID
 class DNAApi:
     ssl_verify = True
     ann_list_data = []
+    _sessions: Dict[str, aiohttp.ClientSession] = {}
+    _session_lock = asyncio.Lock()
+
+    async def get_session(self, proxy: Optional[str] = None) -> aiohttp.ClientSession:
+        # 使用代理 URL 作为 key，None 表示直连
+        key = proxy or "no_proxy"
+
+        # 检查是否已有可用的 session
+        if key in self._sessions and not self._sessions[key].closed:
+            return self._sessions[key]
+
+        async with self._session_lock:
+            # 双重检查，避免并发创建多个 session
+            if key in self._sessions and not self._sessions[key].closed:
+                return self._sessions[key]
+
+            session = aiohttp.ClientSession(
+                connector=aiohttp.TCPConnector(ssl=self.ssl_verify),
+            )
+            self._sessions[key] = session
+            return session
 
     async def get_dna_user(self, uid: str, user_id: str, bot_id: str) -> Optional[DNAUser]:
         dna_user = await DNAUser.select_dna_user(uid, user_id, bot_id)
@@ -342,47 +363,50 @@ class DNAApi:
             header = await get_base_header()
 
         proxy_func = get_need_proxy_func()
-        if inspect.stack()[1].function in proxy_func or "all" in proxy_func:
+        func = inspect.stack()[1].function
+        if func in proxy_func or "all" in proxy_func:
             proxy_url = get_local_proxy_url()
         else:
             proxy_url = None
 
-        if proxy_url and inspect.stack()[1].function in get_no_need_proxy_func():
+        if proxy_url and func in get_no_need_proxy_func():
             proxy_url = None
 
+        is_proxy = proxy_url is not None
+        session = await self.get_session(proxy=proxy_url)
         for attempt in range(max_retries):
             try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.request(
-                        method,
-                        url,
-                        headers=header,
-                        params=params,
-                        json=json_data,
-                        data=data,
-                        timeout=aiohttp.ClientTimeout(total=10),
-                        proxy=proxy_url,
-                    ) as response:
+                async with session.request(
+                    method,
+                    url,
+                    headers=header,
+                    params=params,
+                    json=json_data,
+                    data=data,
+                    proxy=proxy_url,
+                    timeout=aiohttp.ClientTimeout(total=30),
+                ) as response:
+                    try:
+                        raw_res = await response.json()
+                    except aiohttp.ContentTypeError:
+                        _raw_data = await response.text()
+                        raw_res = {
+                            "code": RespCode.ERROR.value,
+                            "data": _raw_data,
+                        }
+                    if isinstance(raw_res, dict):
                         try:
-                            raw_res = await response.json()
-                        except aiohttp.ContentTypeError:
-                            _raw_data = await response.text()
-                            raw_res = {
-                                "code": RespCode.ERROR.value,
-                                "data": _raw_data,
-                            }
-                        if isinstance(raw_res, dict):
-                            try:
-                                raw_res["data"] = json.loads(raw_res.get("data", ""))
-                            except Exception:
-                                pass
+                            raw_res["data"] = json.loads(raw_res.get("data", ""))
+                        except Exception:
+                            pass
 
-                        logger.debug(
-                            f"[DNA] url:[{url}] params:[{params}] headers:[{header}] data:[{data}] raw_res:{raw_res}"
-                        )
-                        return DNAApiResp[Any].model_validate(raw_res)
+                    logger.debug(
+                        f"[DNA] url:[{url}] func:[{func}] is_proxy:[{is_proxy}]  params:[{params}] headers:[{header}] data:[{data}] raw_res:{raw_res}"  # noqa: E501
+                    )
+                    return DNAApiResp[Any].model_validate(raw_res)
             except Exception as e:
-                logger.error(f"请求失败: {e}")
-                await asyncio.sleep(retry_delay * (2**attempt))
+                logger.exception("请求失败", e)
+                if attempt < max_retries - 1:  # 最后一次重试不需要等待
+                    await asyncio.sleep(retry_delay * (2**attempt))
 
         return DNAApiResp[Any].err("请求服务器失败，已达最大重试次数")
