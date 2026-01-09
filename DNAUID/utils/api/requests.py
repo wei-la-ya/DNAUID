@@ -199,12 +199,20 @@ class DNAApi:
         return await self._dna_request(SIGN_CALENDAR_URL, "POST", headers, data=data)
 
     async def game_sign(self, token: str, day_award_id: int, period: int, dev_code: Optional[str] = None):
-        headers = await get_base_header(dev_code=dev_code, token=token)
-        data = {
-            "dayAwardId": day_award_id,
-            "periodId": period,
-            "signinType": 1,
-        }
+        payload = {"dayAwardId": day_award_id, "periodId": period, "signinType": 1}
+        si = build_signature(payload, token)
+        payload.update({"sign": si["s"], "timestamp": si["t"]})
+        data = urlencode(payload)
+
+        rk = si["k"]
+        pk = await self.get_rsa_public_key()
+        ek = rsa_encrypt(rk, pk)
+        headers = await get_base_header(dev_code, token=token)
+
+        if is_h5(headers):
+            headers.update({"k": ek})
+        else:
+            headers.update({"rk": rk, "key": ek})
         return await self._dna_request(GAME_SIGN_URL, "POST", headers, data=data)
 
     async def bbs_sign(self, token: str, dev_code: Optional[str] = None):
