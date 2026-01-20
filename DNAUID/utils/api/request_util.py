@@ -7,10 +7,10 @@ from pydantic import Field, BaseModel, ConfigDict, computed_field
 CONTENT_TYPE = "application/x-www-form-urlencoded; charset=utf-8"
 
 ios_base_header = {
-    "version": "1.1.3",
+    "version": "1.2.0",
     "source": "ios",
     "Content-Type": CONTENT_TYPE,
-    "User-Agent": "DoubleHelix/4 CFNetwork/3860.100.1 Darwin/25.0.0",
+    "User-Agent": "DoubleHelix/3 CFNetwork/3860.300.31 Darwin/25.2.0",
 }
 
 h5_base_header = {
@@ -31,7 +31,7 @@ async def get_base_header(
     """默认获取ios头"""
     header = copy.deepcopy(h5_base_header if is_h5 else ios_base_header)
     if dev_code:
-        header["devCode"] = dev_code
+        header["devcode"] = dev_code
     if is_need_origin:
         header["origin"] = "https://dnabbs.yingxiong.com"
     if is_need_refer:

@@ -3,7 +3,6 @@ import random
 import asyncio
 import inspect
 from typing import Any, Dict, List, Union, Literal, Mapping, Optional
-from urllib.parse import urlencode
 
 import aiohttp
 
@@ -34,9 +33,9 @@ from .api import (
     get_need_proxy_func,
     get_no_need_proxy_func,
 )
-from .sign import rsa_encrypt, get_dev_code, build_signature
+from .sign import get_dev_code, get_signed_headers_and_body
 from ..utils import timed_async_cache
-from .request_util import RespCode, DNAApiResp, is_h5, get_base_header
+from .request_util import RespCode, DNAApiResp, get_base_header
 from ..database.models import DNAUser
 from ..constants.constants import DNA_GAME_ID
 
@@ -106,6 +105,7 @@ class DNAApi:
             "QHwk8CRkQh6C6qFnfLH3tiyl0pnt3dePuFDnM1PUXGhCkQ157ePJCQgkDU2+mimDmXh0oLFn9zuWSp+"
             "U8uLSLX3t3PpJ8TmNCROfUDWvzdbnShqg7JfDmnrOJz49qd234W84nrfTHbzdqeigQIDAQAB"
         )
+
         if res.is_success and isinstance(res.data, dict):
             key = res.data.get("key")
             if key and isinstance(key, str):
@@ -114,38 +114,29 @@ class DNAApi:
         return rsa_pub
 
     async def get_sms_code(self, mobile: Union[int, str], v_json: str, dev_code: str):
-        payload = {"isCaptcha": 1, "mobile": mobile}
-        si = build_signature(payload)
-        payload.update({"sign": si["s"], "timestamp": si["t"], "vJson": v_json})
+        headers = await get_base_header(dev_code=dev_code)
+        payload = {"isCaptcha": 1, "mobile": mobile, "vJson": v_json}
 
-        rk = si["k"]
-        pk = await self.get_rsa_public_key()
-        ek = rsa_encrypt(rk, pk)
-        header = await get_base_header(dev_code=dev_code)
-
-        if is_h5(header):
-            header.update({"k": ek})
-        else:
-            header.update({"rk": rk, "key": ek})
-
-        return await self._dna_request(GET_SMS_CODE_URL, "POST", header, data=payload)
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=GET_SMS_CODE_URL,
+            header=headers,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(GET_SMS_CODE_URL, "POST", headers, data=payload)
 
     async def login(self, mobile: Union[int, str], code: str, dev_code: str):
-        payload = {"code": code, "devCode": dev_code, "gameList": DNA_GAME_ID, "loginType": 1, "mobile": mobile}
-        si = build_signature(payload)
-        payload.update({"sign": si["s"], "timestamp": si["t"]})
-
-        rk = si["k"]
-        pk = await self.get_rsa_public_key()
-        ek = rsa_encrypt(rk, pk)
         header = await get_base_header(dev_code)
-
-        if is_h5(header):
-            header.update({"k": ek})
-        else:
-            header.update({"rk": rk, "key": ek})
-
-        return await self._dna_request(LOGIN_URL, "POST", header, data=payload)
+        payload = {"code": code, "devcode": dev_code, "gameList": DNA_GAME_ID, "loginType": 1, "mobile": mobile}
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=LOGIN_URL,
+            header=header,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(LOGIN_URL, "POST", headers, data=payload)
 
     async def login_log(self, token: str, dev_code: Optional[str] = None):
         headers = await get_base_header(dev_code=dev_code, token=token)
@@ -153,7 +144,15 @@ class DNAApi:
 
     async def get_role_list(self, token: str, dev_code: str):
         headers = await get_base_header(dev_code=dev_code, token=token)
-        return await self._dna_request(ROLE_LIST_URL, "POST", headers)
+        payload = {}
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=ROLE_LIST_URL,
+            header=headers,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(ROLE_LIST_URL, "POST", headers, data=payload)
 
     async def get_mh(self):
         dna_user = await self.get_random_dna_user()
@@ -163,21 +162,16 @@ class DNAApi:
         return await self.get_default_role_for_tool(dna_user.cookie, dna_user.dev_code)
 
     async def get_default_role_for_tool(self, token: str, dev_code: str):
-        payload = {"type": 1}
-        si = build_signature(payload, token)
-        payload.update({"sign": si["s"], "timestamp": si["t"]})
-        data = urlencode(payload)
-
-        rk = si["k"]
-        pk = await self.get_rsa_public_key()
-        ek = rsa_encrypt(rk, pk)
         header = await get_base_header(dev_code, token=token)
-
-        if is_h5(header):
-            header.update({"k": ek})
-        else:
-            header.update({"rk": rk, "key": ek})
-        return await self._dna_request(ROLE_FOR_TOOL_URL, "POST", header, data=data)
+        payload = {"type": 1}
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=ROLE_FOR_TOOL_URL,
+            header=header,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(ROLE_FOR_TOOL_URL, "POST", headers, data=payload)
 
     async def get_role_detail(self, token: str, char_id: str, char_eid: str, dev_code: str):
         headers = await get_base_header(dev_code=dev_code, token=token)
@@ -199,26 +193,28 @@ class DNAApi:
         return await self._dna_request(SIGN_CALENDAR_URL, "POST", headers, data=data)
 
     async def game_sign(self, token: str, day_award_id: int, period: int, dev_code: Optional[str] = None):
-        payload = {"dayAwardId": day_award_id, "periodId": period, "signinType": 1}
-        si = build_signature(payload, token)
-        payload.update({"sign": si["s"], "timestamp": si["t"]})
-        data = urlencode(payload)
-
-        rk = si["k"]
-        pk = await self.get_rsa_public_key()
-        ek = rsa_encrypt(rk, pk)
         headers = await get_base_header(dev_code, token=token)
-
-        if is_h5(headers):
-            headers.update({"k": ek})
-        else:
-            headers.update({"rk": rk, "key": ek})
-        return await self._dna_request(GAME_SIGN_URL, "POST", headers, data=data)
+        payload = {"dayAwardId": day_award_id, "periodId": period, "signinType": 1}
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=GAME_SIGN_URL,
+            header=headers,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(GAME_SIGN_URL, "POST", headers, data=payload)
 
     async def bbs_sign(self, token: str, dev_code: Optional[str] = None):
         headers = await get_base_header(dev_code=dev_code, token=token)
-        data = {"gameId": DNA_GAME_ID}
-        return await self._dna_request(BBS_SIGN_URL, "POST", headers, data=data)
+        payload = {"gameId": DNA_GAME_ID}
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=BBS_SIGN_URL,
+            header=headers,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(BBS_SIGN_URL, "POST", headers, data=payload)
 
     async def get_task_process(self, token: str, dev_code: Optional[str] = None):
         """获取任务进度"""
@@ -305,33 +301,22 @@ class DNAApi:
     ):
         """回复帖子"""
         content_json = json.dumps([{"content": content, "contentType": "1"}])
+        header = await get_base_header(dev_code, token=token)
+        rsa_pub = await self.get_rsa_public_key()
         payload = {
             "postId": post.get("postId"),
             "forumId": post.get("gameForumId", 47),
             "postType": "1",
             "content": content_json,
+            "toUserId": post.get("userId"),
         }
-
-        si = build_signature(payload)
-        payload.update(
-            {
-                "sign": si["s"],
-                "timestamp": si["t"],
-                "toUserId": post.get("userId"),
-            }
+        headers, payload = get_signed_headers_and_body(
+            url=REPLY_POST_URL,
+            header=header,
+            data=payload,
+            rsa_public_key=rsa_pub,
         )
-
-        rk = si["k"]
-        pk = await self.get_rsa_public_key()
-        ek = rsa_encrypt(rk, pk)
-        header = await get_base_header(dev_code, token=token)
-
-        if is_h5(header):
-            header.update({"k": ek})
-        else:
-            header.update({"rk": rk, "key": ek})
-
-        return await self._dna_request(REPLY_POST_URL, "POST", header, data=payload)
+        return await self._dna_request(REPLY_POST_URL, "POST", headers, data=payload)
 
     async def get_ann_list(self, is_cache: bool = False):
         if is_cache and self.ann_list_data:
