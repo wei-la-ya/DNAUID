@@ -404,10 +404,19 @@ class DNAApi:
                     logger.debug(
                         f"[DNA] url:[{url}] func:[{func}] is_proxy:[{is_proxy}]  params:[{params}] headers:[{header}] data:[{data}] raw_res:{raw_res}"  # noqa: E501
                     )
-                    return DNAApiResp[Any].model_validate(raw_res)
+
+                    res = DNAApiResp[Any].model_validate(raw_res)
+                    if res.code == 10100 and res.msg == "业务异常":
+                        # 有病
+                        raise Exception(f"{url} 业务异常: {json.dumps(raw_res, ensure_ascii=False)}")
+                    elif res.code == 200 and res.msg == "请求成功" and not res.data:
+                        # 有大病
+                        raise Exception(f"{url} 请求成功，但数据为空: {json.dumps(raw_res, ensure_ascii=False)}")
+
+                    return res
             except Exception as e:
                 logger.exception("请求失败", e)
                 if attempt < max_retries - 1:  # 最后一次重试不需要等待
                     await asyncio.sleep(retry_delay * (2**attempt))
 
-        return DNAApiResp[Any].err("请求服务器失败，已达最大重试次数")
+        return DNAApiResp[Any].err("请求服务器失败，请稍后再试")
