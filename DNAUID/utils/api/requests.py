@@ -264,8 +264,9 @@ class DNAApi:
         dev_code: Optional[str] = None,
     ):
         """点赞帖子"""
-        header = await get_base_header(dev_code=dev_code, token=token)
-        data = {
+        headers = await get_base_header(dev_code=dev_code, token=token)
+
+        payload = {
             "forumId": post.get("gameForumId"),
             "gameId": DNA_GAME_ID,
             "likeType": "1",
@@ -276,8 +277,15 @@ class DNAApi:
             "postType": post.get("postType"),
             "toUserId": post.get("userId"),
         }
+        rsa_pub = await self.get_rsa_public_key()
+        headers, payload = get_signed_headers_and_body(
+            url=LIKE_POST_URL,
+            header=headers,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
         try:
-            return await self._dna_request(LIKE_POST_URL, "POST", header, data=data)
+            return await self._dna_request(LIKE_POST_URL, "POST", headers, data=payload)
         except Exception as e:
             logger.exception("do_like", e)
             return DNAApiResp[Any].err("请求皎皎角服务失败")
