@@ -1,157 +1,129 @@
 import time
 import uuid
 import base64
+import random
 import hashlib
-import secrets
-from typing import Any, Dict, Tuple, Optional
-
-
-def rsa_encrypt(text: str, public_key_b64: str) -> str:
-    try:
-        from Crypto.Cipher import PKCS1_v1_5
-        from Crypto.PublicKey import RSA
-    except Exception:
-        raise RuntimeError("[DNA] 缺少依赖: 需要 pycryptodome 执行 RSA 加密。请安装: uv add pycryptodome")
-
-    try:
-        # 将一行 base64 公钥转 PEM（PKCS#8 公钥）
-        lines = [public_key_b64[i : i + 64] for i in range(0, len(public_key_b64), 64)]
-        pem = "-----BEGIN PUBLIC KEY-----\n" + "\n".join(lines) + "\n-----END PUBLIC KEY-----"
-        rsa_key = RSA.import_key(pem)
-        cipher = PKCS1_v1_5.new(rsa_key)
-
-        max_block_size = 117
-        input_bytes = text.encode("utf-8")
-        result = []
-        offset = 0
-        while offset < len(input_bytes):
-            remaining = len(input_bytes) - offset
-            block_size = min(max_block_size, remaining)
-            block = input_bytes[offset : offset + block_size]
-            encrypted = cipher.encrypt(block)
-            result.append(encrypted)
-            offset += block_size
-
-        encrypted_bytes = b"".join(result)
-        return base64.b64encode(encrypted_bytes).decode("utf-8")
-    except Exception as e:
-        raise RuntimeError(f"[DNA] RSA 加密失败: {e}")
-
-
-def get_timestamp() -> int:
-    return int(time.time() * 1000)
+from typing import Any, Dict, Tuple
 
 
 def get_dev_code() -> str:
     return str(uuid.uuid4()).upper()
 
 
-def rand_str(length: int = 16) -> str:
+def generate_random_string(length):
     chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-    return "".join(secrets.choice(chars) for _ in range(length))
+    return "".join(random.choice(chars) for _ in range(length))
 
 
-def md5_upper(text: str) -> str:
-    return hashlib.md5(text.encode("utf-8")).hexdigest().upper()
+def swap_chars(char_list, *indices):
+    for i in range(1, len(indices), 2):
+        idx1 = indices[i - 1]
+        idx2 = indices[i]
+        if idx1 < len(char_list) and idx2 < len(char_list):
+            char_list[idx1], char_list[idx2] = char_list[idx2], char_list[idx1]
 
 
-def shuffle_md5(md5_hex: str) -> str:
-    """MD5 结果位置混淆: 1↔13, 5↔17, 7↔23"""
-    if len(md5_hex) <= 23:
-        return md5_hex
-    chars = list(md5_hex)
-    for i, j in [(1, 13), (5, 17), (7, 23)]:
-        chars[i], chars[j] = chars[j], chars[i]
-    return "".join(chars)
+class SignUtils:
+    @staticmethod
+    def generate_sa():
+        random_str = generate_random_string(17)
+        timestamp = str(int(time.time() * 1000))
+
+        sb = []
+        time_idx = 0
+        rand_idx = 0
+
+        for i in range(30):
+            if 8 <= i <= 12:
+                sb.append(timestamp[time_idx])
+                time_idx += 1
+            elif 16 <= i <= 20:
+                sb.append(timestamp[time_idx])
+                time_idx += 1
+            elif i < 22 or i > 24:
+                sb.append(random_str[rand_idx])
+                rand_idx += 1
+            else:
+                sb.append(timestamp[time_idx])
+                time_idx += 1
+
+        sa_raw = "".join(sb)
+
+        char_list = list(sa_raw)
+        swap_chars(char_list, 2, 23, 9, 17, 13, 25)
+        sa_header = "".join(char_list)
+
+        return sa_raw, sa_header
+
+    @staticmethod
+    def rsa_encrypt(data, public_key_base64):
+        try:
+            from Crypto.Cipher import PKCS1_v1_5
+            from Crypto.PublicKey import RSA
+        except Exception:
+            raise RuntimeError("[DNA] 缺少依赖: 需要 pycryptodome 执行 RSA 加密。请安装: uv add pycryptodome")
+        try:
+            key_data = base64.b64decode(public_key_base64)
+            key = RSA.importKey(key_data)
+            cipher = PKCS1_v1_5.new(key)
+            encrypted_bytes = cipher.encrypt(data.encode("utf-8"))
+            return base64.b64encode(encrypted_bytes).decode("utf-8")
+        except Exception as e:
+            raise RuntimeError(f"RSA Encrypt Error: {e}")
+
+    @staticmethod
+    def custom_encrypt(src, key):
+        src_bytes = src.encode("utf-8")
+        key_bytes = key.encode("utf-8")
+        sb = []
+
+        for i in range(len(src_bytes)):
+            b1 = src_bytes[i]
+            b2 = key_bytes[i % len(key_bytes)]
+            val = b1 + b2
+            sb.append(f"@{val}")
+
+        return "".join(sb)
+
+    @staticmethod
+    def sign_and_encrypt_params(params_map, app_key):
+        sorted_keys = sorted(params_map.keys())
+        sb_list = []
+        for key in sorted_keys:
+            val = params_map[key]
+            if val is not None and str(val) != "":
+                sb_list.append(f"{key}={val}&")
+
+        sb = "".join(sb_list) + app_key
+
+        md5_hash = hashlib.md5(sb.encode("utf-8")).hexdigest().upper()
+        md5_chars = list(md5_hash)
+
+        if len(md5_chars) > 23:
+            swap_chars(md5_chars, 1, 13, 5, 17, 7, 23)
+
+        sign_str = "".join(md5_chars)
+
+        return SignUtils.custom_encrypt(sign_str, app_key)
+
+    @staticmethod
+    def generate_tn(params_map, request_key, public_key_base64):
+        encrypted_key = SignUtils.rsa_encrypt(request_key, public_key_base64)
+        signed_params = SignUtils.sign_and_encrypt_params(params_map, request_key)
+
+        return f"{encrypted_key},{signed_params}"
 
 
-def generate_sa() -> Tuple[str, str]:
-    """生成 sa 参数 (30位字符串)
-    Returns:
-        (raw_sa, shuffled_sa)
-    """
-    random_part = rand_str(17)
-    timestamp = str(int(time.time() * 1000))
-
-    result = []
-    rand_idx = 0
-    time_idx = 0
-
-    for i in range(30):
-        if 8 <= i <= 12:
-            result.append(timestamp[time_idx])
-            time_idx += 1
-        elif 16 <= i <= 20:
-            result.append(timestamp[time_idx])
-            time_idx += 1
-        elif 22 <= i <= 24:
-            result.append(timestamp[time_idx])
-            time_idx += 1
-        else:
-            result.append(random_part[rand_idx])
-            rand_idx += 1
-
-    raw_sa = "".join(result)
-
-    chars = list(raw_sa)
-    for i, j in [(2, 23), (9, 17), (13, 25)]:
-        chars[i], chars[j] = chars[j], chars[i]
-    shuffled_sa = "".join(chars)
-
-    return raw_sa, shuffled_sa
-
-
-def build_sign_string(params: Dict[str, Any], app_key: str) -> str:
-    sorted_keys = sorted(params.keys())
-    pairs = []
-    for key in sorted_keys:
-        value = params.get(key, "")
-        if value is not None and value != "":
-            pairs.append(f"{key}={value}")
-    pairs.append(app_key)
-    return "&".join(pairs)
-
-
-def sign_shuffled(params: Dict[str, Any], app_key: str) -> str:
-    sign_str = build_sign_string(params, app_key)
-    md5_res = md5_upper(sign_str)
-    return shuffle_md5(md5_res)
-
-
-def xor_encode(text: str, key: str) -> str:
-    tb = list(text.encode("utf-8"))
-    kb = list(key.encode("utf-8"))
-    out = []
-    for i, b in enumerate(tb):
-        e = (b & 255) + (kb[i % len(kb)] & 255)
-        out.append(f"@{e}")
-    return "".join(out)
-
-
-def build_signature_headers(
-    params: Dict[str, Any], token: Optional[str], dev_code: str, rsa_public_key: str
-) -> Tuple[Dict[str, str], Dict[str, Any]]:
-    rk = rand_str(16)
-    raw_sa, shuffled_sa = generate_sa()
-    str_params = {k: str(v) for k, v in params.items()}
-    sign_params = str_params.copy()
-    if token:
-        sign_params["token"] = token
-    sign_params["sa"] = raw_sa
-
-    sign_val = sign_shuffled(sign_params, rk)
-    rk_encrypted = rsa_encrypt(rk, rsa_public_key)
-    sign_encoded = xor_encode(sign_val, rk)
-    tn_value = f"{rk_encrypted},{sign_encoded}"
-
-    headers_update = {
-        "rk": rk,
-        "tn": tn_value,
-        "sa": shuffled_sa,
-        "devcode": dev_code,
-    }
-
-    return headers_update, str_params
+def generate_headers(headers: Dict[str, str], payload: Dict[str, Any], rsa_public_key: str):
+    request_key = generate_random_string(16)
+    sa_raw, sa_header = SignUtils.generate_sa()
+    sign_map = payload.copy()
+    if headers.get("token"):
+        sign_map["token"] = headers["token"]
+    sign_map["sa"] = sa_raw
+    tn_header = SignUtils.generate_tn(sign_map, request_key, rsa_public_key)
+    headers.update({"sa": sa_header, "tn": tn_header})
+    return headers, payload
 
 
 def get_signed_headers_and_body(
@@ -183,17 +155,4 @@ def get_signed_headers_and_body(
     if not need_sign:
         return header, data
 
-    current_header = header or {}
-    dev_code = current_header.get("devcode") or get_dev_code()
-    token = current_header.get("token")
-
-    current_data = data or {}
-
-    headers_update, body_update = build_signature_headers(
-        params=current_data, token=token, dev_code=dev_code, rsa_public_key=rsa_public_key
-    )
-
-    new_header = dict(current_header)
-    new_header.update(headers_update)
-
-    return new_header, body_update
+    return generate_headers(header, data, rsa_public_key)

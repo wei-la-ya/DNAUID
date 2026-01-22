@@ -31,7 +31,7 @@ async def get_base_header(
     """默认获取ios头"""
     header = copy.deepcopy(h5_base_header if is_h5 else ios_base_header)
     if dev_code:
-        header["devcode"] = dev_code
+        header["devCode"] = dev_code
     if is_need_origin:
         header["origin"] = "https://dnabbs.yingxiong.com"
     if is_need_refer:

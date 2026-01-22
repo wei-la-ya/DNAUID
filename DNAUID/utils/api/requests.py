@@ -128,7 +128,7 @@ class DNAApi:
 
     async def login(self, mobile: Union[int, str], code: str, dev_code: str):
         header = await get_base_header(dev_code)
-        payload = {"code": code, "devcode": dev_code, "gameList": DNA_GAME_ID, "loginType": 1, "mobile": mobile}
+        payload = {"code": code, "devCode": dev_code, "gameList": DNA_GAME_ID, "loginType": 1, "mobile": mobile}
         rsa_pub = await self.get_rsa_public_key()
         headers, payload = get_signed_headers_and_body(
             url=LOGIN_URL,
@@ -141,7 +141,9 @@ class DNAApi:
     @timed_async_cache(86400, lambda x: x and x.success)
     async def login_log(self, token: str, dev_code: Optional[str] = None):
         headers = await get_base_header(dev_code=dev_code, token=token)
-        return await self._dna_request(LOGIN_LOG_URL, "POST", headers)
+        res = await self._dna_request(LOGIN_LOG_URL, "POST", headers)
+        await asyncio.sleep(1 + random.uniform(0, 0.5))
+        return res
 
     async def get_role_list(self, token: str, dev_code: str):
         headers = await get_base_header(dev_code=dev_code, token=token)
