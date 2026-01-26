@@ -111,6 +111,10 @@ class RoleAchievement(BaseModel):
     paramValue: str = Field(description="paramValue")
 
 
+class RoleAchv(BaseModel):
+    total: int = Field(description="总成就数")
+
+
 class RoleShowForTool(BaseModel):
     roleChars: List[RoleInsForTool] = Field(description="角色列表")
     langRangeWeapons: List[WeaponInsForTool] = Field(description="武器列表")
@@ -119,6 +123,7 @@ class RoleShowForTool(BaseModel):
     params: List[RoleAchievement] = Field(description="成就列表")
     roleId: str = Field(description="角色id")
     roleName: str = Field(description="角色名称")
+    roleAchv: RoleAchv = Field(description="成就信息")
 
 
 class RoleInfoForTool(BaseModel):
@@ -184,6 +189,7 @@ class Mode(BaseModel):
     icon: Optional[str] = Field(description="图标", default=None)
     quality: Optional[int] = Field(description="质量", default=None)
     name: Optional[str] = Field(description="名称", default=None)
+    level: Optional[int] = Field(description="等级", default=0)
 
 
 class RoleDetail(BaseModel):

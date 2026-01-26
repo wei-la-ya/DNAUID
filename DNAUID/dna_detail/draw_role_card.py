@@ -13,6 +13,7 @@ from ..utils.image import (
     COLOR_SALMON,
     COLOR_GOLDENROD,
     COLOR_FIRE_BRICK,
+    COLOR_ORANGE_RED,
     get_div,
     add_footer,
     get_dna_bg,
@@ -231,7 +232,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
     # mod
     all_mod_bg = Image.new("RGBA", (1000, 500), (0, 0, 0, 0))
     # 左4
-    left_list = role_detail.modes[:4]
+    left_list = [role_detail.modes[0], role_detail.modes[2], role_detail.modes[4], role_detail.modes[6]]
     for index, mod in enumerate(left_list):
         quality = mod.quality or 1
         mod_bg = Image.open(TEXT_PATH / f"mod/mod_left_{quality}.png")
@@ -243,11 +244,21 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
             mod_bg.alpha_composite(mod_img, (35, 15))
             mod_bg_draw.text((115, 180), mod.name, COLOR_WHITE, dna_font_26, "mm")
 
+        if mod.id != -1 and mod.level:
+            get_smooth_drawer().rounded_rectangle(
+                (60, 30, 100, 60),
+                10,
+                COLOR_ORANGE_RED,
+                target=mod_bg,
+            )
+
+            mod_bg_draw.text((80, 44), f"+{mod.level}", COLOR_WHITE, dna_font_26, "mm")
+
         # 2行2列，先左右，再上下
         all_mod_bg.alpha_composite(mod_bg, (30 + (index % 2) * 180, (index // 2) * 250))
 
     # 右4
-    right_list = role_detail.modes[4:8]
+    right_list = [role_detail.modes[1], role_detail.modes[3], role_detail.modes[7], role_detail.modes[5]]
     for index, mod in enumerate(right_list):
         quality = mod.quality or 1
         mod_bg = Image.open(TEXT_PATH / f"mod/mod_right_{quality}.png")
@@ -258,6 +269,16 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
             mod_img = mod_img.resize((180, 180))
             mod_bg.alpha_composite(mod_img, (35, 15))
             mod_bg_draw.text((140, 180), mod.name, COLOR_WHITE, dna_font_26, "mm")
+
+        if mod.id != -1 and mod.level:
+            get_smooth_drawer().rounded_rectangle(
+                (140, 30, 180, 60),
+                10,
+                COLOR_ORANGE_RED,
+                target=mod_bg,
+            )
+
+            mod_bg_draw.text((160, 44), f"+{mod.level}", COLOR_WHITE, dna_font_26, "mm")
 
         # 2行2列，先左右，再上下
         all_mod_bg.alpha_composite(mod_bg, (530 + (index % 2) * 180, (index // 2) * 250))
@@ -272,6 +293,16 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         mod_img = mod_img.resize((150, 150))
         mod_bg.alpha_composite(mod_img, (5, 5))
         mod_bg_draw.text((80, 170), center_list.name, COLOR_WHITE, dna_font_26, "mm")
+
+    if center_list.id != -1 and center_list.level:
+        get_smooth_drawer().rounded_rectangle(
+            (110, 110, 150, 140),
+            10,
+            COLOR_ORANGE_RED,
+            target=mod_bg,
+        )
+        mod_bg_draw.text((130, 124), f"+{center_list.level}", COLOR_WHITE, dna_font_26, "mm")
+
     all_mod_bg.alpha_composite(mod_bg, (415, 100))
 
     card.alpha_composite(all_mod_bg, (0, 1200))
@@ -282,7 +313,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         role_show.roleId,
         role_show.roleName,
         user_level=role_show.level,
-        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "成就达成")],
+        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "游戏时长")],
     )
     avatar_title = avatar_title.resize((1000, 1000 * avatar_title.height // avatar_title.width))
     card.alpha_composite(avatar_title, (0, 1750))

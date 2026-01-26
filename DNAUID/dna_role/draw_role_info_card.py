@@ -91,6 +91,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
     achievement_info.extend(
         [(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("装饰数量", "魔灵数量")]
     )
+    achievement_info.extend([("总成就数", str(role_show.roleAchv.total))])
 
     h = 650 + 100 + 50  # title+info+footer
     if role_unlocked_count > 0:
@@ -114,7 +115,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
         role_show.roleId,
         role_show.roleName,
         user_level=role_show.level,
-        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "成就达成")],
+        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "游戏时长")],
     )
     card.alpha_composite(avatar_title, (-50, 400))
 

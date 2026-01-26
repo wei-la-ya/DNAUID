@@ -61,7 +61,7 @@ async def draw_stamina_img(bot: Bot, ev: Event):
 
     role_show = role_for_tool_info.roleInfo.roleShow
     other_info = [
-        (i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "成就达成", "获得角色数")
+        (i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "游戏时长", "获得角色数")
     ]
     # title
     avatar_title = await get_avatar_title_img(

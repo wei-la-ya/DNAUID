@@ -199,4 +199,10 @@ def get_signed_headers_and_body(
     if not need_sign:
         return header, data
 
+    token = header.get("token", "")
+    dev_code = header.get("devCode", "")
+    from .ws_manager import get_ws_manager
+
+    get_ws_manager().get_connection(token, dev_code)
+
     return generate_headers(header, data, rsa_public_key)
