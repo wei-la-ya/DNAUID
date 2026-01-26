@@ -176,6 +176,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
                 level=weapon.level,
                 element_icon=weapon.elementIcon,
                 icon=weapon.icon,
+                grade_level=weapon.skillLevel,
             )
             for weapon in role_show.closeWeapons
             if weapon.unLocked
@@ -201,6 +202,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
                 level=weapon.level,
                 element_icon=weapon.elementIcon,
                 icon=weapon.icon,
+                grade_level=weapon.skillLevel,
             )
             for weapon in role_show.langRangeWeapons
             if weapon.unLocked

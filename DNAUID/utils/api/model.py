@@ -92,7 +92,7 @@ class WeaponInsForTool(BaseModel):
     unLocked: bool = Field(description="是否解锁")
     weaponEid: Optional[str] = Field(description="weaponEid", default=None)
     weaponId: int = Field(description="weaponId")
-    # skillLevel: Optional[int] = Field(description="skillLevel")
+    skillLevel: int = Field(description="武器精炼等级", default=0)
 
 
 class RoleInsForTool(BaseModel):
