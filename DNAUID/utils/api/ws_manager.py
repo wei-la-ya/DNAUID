@@ -3,7 +3,7 @@ import json
 import time
 import base64
 import threading
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Optional
 from collections import OrderedDict
 
 import websocket
@@ -22,22 +22,21 @@ class WebSocketManager:
     WS_URL = "wss://dnabbs-api.yingxiong.com:8180/ws-community-websocket"
     MAX_POOL_SIZE = 20
     HEARTBEAT_INTERVAL = 10
+    CONNECTION_TIMEOUT = 300
 
     def __init__(self):
-        self._pool: OrderedDict[Tuple[str, str], Any] = OrderedDict()
-        self._connected: Dict[Tuple[str, str], bool] = {}
+        # _pool 存储 (ws, timestamp) 元组
+        self._pool: OrderedDict[tuple[str, str], tuple[Any, float]] = OrderedDict()
         self._lock = threading.Lock()
 
     def _extract_user_id(self, token: str) -> str:
         try:
-            parts = token.split(".")
-            if len(parts) >= 2:
+            if len(parts := token.split(".")) >= 2:
                 payload = parts[1]
-                padding = len(payload) % 4
-                if padding:
+                if padding := len(payload) % 4:
                     payload += "=" * (4 - padding)
-                decoded = base64.urlsafe_b64decode(payload)
-                return str(json.loads(decoded).get("userId", ""))
+                if data := json.loads(base64.urlsafe_b64decode(payload)):
+                    return str(data.get("userId", ""))
         except Exception:
             pass
         return ""
@@ -61,20 +60,29 @@ class WebSocketManager:
             key = (token, dev_code)
             user_id = self._extract_user_id(token)
 
+            def _remove_from_pool():
+                with self._lock:
+                    self._pool.pop(key, None)
+
             def on_message(ws, message):
-                pass
+                # 快速过期检查
+                logger.debug(f"[DNA WebSocket] 收到消息: {message}")
+                with self._lock:
+                    if (item := self._pool.get(key)) and time.time() - item[1] > self.CONNECTION_TIMEOUT:
+                        try:
+                            ws.close()
+                        except Exception:
+                            pass
 
             def on_error(ws, error):
-                with self._lock:
-                    self._connected[key] = False
+                _remove_from_pool()
 
             def on_close(ws, close_status_code, close_msg):
-                with self._lock:
-                    self._connected[key] = False
+                _remove_from_pool()
 
             def on_open(ws):
                 with self._lock:
-                    self._connected[key] = True
+                    self._pool[key] = (ws, time.time())
                 self._start_heartbeat(ws, user_id)
 
             ws = websocket.WebSocketApp(
@@ -97,50 +105,57 @@ class WebSocketManager:
             threading.Thread(target=lambda: ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}), daemon=True).start()
             return ws
         except Exception as e:
-            logger.warning(f"[WebSocket] 连接失败: {e}")
+            logger.warning(f"[DNA WebSocket] 连接失败: {e}")
             return None
+
+    def _is_expired(self, key: tuple[str, str]) -> bool:
+        if not (item := self._pool.get(key)):
+            return True
+        return time.time() - item[1] > self.CONNECTION_TIMEOUT
+
+    def _cleanup_connection(self, key: tuple[str, str]):
+        if item := self._pool.pop(key, None):
+            try:
+                item[0].close()
+            except Exception:
+                pass
 
     def get_connection(self, token: str, dev_code: str) -> Optional[Any]:
         key = (token, dev_code)
 
         with self._lock:
-            if key in self._pool and self._connected.get(key, False):
+            # 检查连接是否存在且有效（未过期）
+            if (item := self._pool.get(key)) and time.time() - item[1] <= self.CONNECTION_TIMEOUT:
                 self._pool.move_to_end(key)
-                return self._pool[key]
+                return item[0]
 
+            # 清理当前请求的无效连接
             if key in self._pool:
-                try:
-                    self._pool[key].close()
-                except Exception:
-                    pass
-                del self._pool[key]
-                del self._connected[key]
+                self._cleanup_connection(key)
 
+            # 批量清理其他过期连接
+            for expired_key in [k for k in self._pool if self._is_expired(k)]:
+                self._cleanup_connection(expired_key)
+
+            # LRU 淘汰：超过上限则移除最老的
             while len(self._pool) >= self.MAX_POOL_SIZE:
-                oldest_key, oldest_ws = self._pool.popitem(last=False)
-                del self._connected[oldest_key]
-                try:
-                    oldest_ws.close()
-                except Exception:
-                    pass
+                self._cleanup_connection(self._pool.popitem(last=False)[0])
 
-            self._connected[key] = False
-            ws = self._create_connection(token, dev_code)
-            if ws:
-                self._pool[key] = ws
+            # 创建新连接
+            if ws := self._create_connection(token, dev_code):
+                self._pool[key] = (ws, time.time())  # on_open 会更新为实际建立时间
                 return ws
 
         return None
 
     def close_all(self):
         with self._lock:
-            for ws in self._pool.values():
+            while self._pool:
+                key, item = self._pool.popitem()
                 try:
-                    ws.close()
+                    item[0].close()
                 except Exception:
                     pass
-            self._pool.clear()
-            self._connected.clear()
 
 
 # 全局单例
@@ -149,6 +164,4 @@ _ws_manager: Optional[WebSocketManager] = None
 
 def get_ws_manager() -> WebSocketManager:
     global _ws_manager
-    if _ws_manager is None:
-        _ws_manager = WebSocketManager()
-    return _ws_manager
+    return _ws_manager or (_ws_manager := WebSocketManager())
