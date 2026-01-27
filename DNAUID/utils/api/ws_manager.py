@@ -19,6 +19,12 @@ def get_ws_continue_time() -> int:
     return DNAConfig.get_config("WebSocketContinueTime").data or 300
 
 
+def get_ws_wait_time() -> int:
+    from ...dna_config.dna_config import DNAConfig
+
+    return DNAConfig.get_config("WebSocketWaitTime").data or 5
+
+
 class WebSocketManager:
     """WebSocket 连接池管理器
 
@@ -33,6 +39,7 @@ class WebSocketManager:
         # _pool 存储 (ws, timestamp) 元组
         self._pool: OrderedDict[tuple[str, str], tuple[Any, float]] = OrderedDict()
         self._lock = threading.Lock()
+        self._ready_events: dict[tuple[str, str], threading.Event] = {}
 
     def _extract_user_id(self, token: str) -> str:
         try:
@@ -60,7 +67,7 @@ class WebSocketManager:
 
         threading.Thread(target=heartbeat_loop, daemon=True).start()
 
-    def _create_connection(self, token: str, dev_code: str) -> Optional[Any]:
+    def _create_connection(self, token: str, dev_code: str, ready_event: threading.Event) -> Optional[Any]:
         try:
             key = (token, dev_code)
             user_id = self._extract_user_id(token)
@@ -68,10 +75,11 @@ class WebSocketManager:
             def _remove_from_pool():
                 with self._lock:
                     self._pool.pop(key, None)
+                    self._ready_events.pop(key, None)
 
             def on_message(ws, message):
                 # 快速过期检查
-                logger.debug(f"[DNA WebSocket] 收到消息: {message}")
+                logger.debug(f"[DNA WebSocket] received message: {message}")
                 with self._lock:
                     if (item := self._pool.get(key)) and time.time() - item[1] > get_ws_continue_time():
                         try:
@@ -80,15 +88,20 @@ class WebSocketManager:
                             pass
 
             def on_error(ws, error):
+                logger.debug(f"[DNA WebSocket] on_error is called (error: {error})")
                 _remove_from_pool()
+                ready_event.set()  # 即使出错也要释放等待
 
             def on_close(ws, close_status_code, close_msg):
+                logger.debug(f"[DNA WebSocket] on_close is called (code: {close_status_code}, message: {close_msg})")
                 _remove_from_pool()
 
             def on_open(ws):
+                logger.debug("[DNA WebSocket] on_open is successed")
                 with self._lock:
                     self._pool[key] = (ws, time.time())
                 self._start_heartbeat(ws, user_id)
+                ready_event.set()  # 连接成功，释放等待
 
             ws = websocket.WebSocketApp(
                 self.WS_URL,
@@ -110,7 +123,8 @@ class WebSocketManager:
             threading.Thread(target=lambda: ws.run_forever(sslopt={"cert_reqs": ssl.CERT_NONE}), daemon=True).start()
             return ws
         except Exception as e:
-            logger.warning(f"[DNA WebSocket] 连接失败: {e}")
+            logger.warning(f"[DNA WebSocket] connection failed (error: {e})")
+            ready_event.set()
             return None
 
     def _is_expired(self, key: tuple[str, str]) -> bool:
@@ -125,7 +139,7 @@ class WebSocketManager:
             except Exception:
                 pass
 
-    def get_connection(self, token: str, dev_code: str) -> Optional[Any]:
+    def get_connection(self, token: str, dev_code: str, wait_ready: bool = False, timeout: float = 5) -> Optional[Any]:
         key = (token, dev_code)
 
         with self._lock:
@@ -149,11 +163,36 @@ class WebSocketManager:
                 self._cleanup_connection(self._pool.popitem(last=False)[0])
 
             # 创建新连接
-            if ws := self._create_connection(token, dev_code):
-                self._pool[key] = (ws, time.time())  # on_open 会更新为实际建立时间
-                return ws
+            ready_event = threading.Event()
+            self._ready_events[key] = ready_event
 
-        return None
+            ws = self._create_connection(token, dev_code, ready_event)
+            if not ws:
+                self._ready_events.pop(key, None)
+                return None
+
+            self._pool[key] = (ws, time.time())  # on_open 会更新为实际建立时间
+
+        # 等待连接建立
+        if wait_ready:
+            logger.debug(f"[DNA WebSocket] waiting for connection to be established (timeout {timeout}s)...")
+            if ready_event.wait(timeout):
+                with self._lock:
+                    if key in self._pool:
+                        logger.debug("[DNA WebSocket] connection is ready")
+                        return self._pool[key][0]
+                    else:
+                        logger.warning("[DNA WebSocket] connection is failed")
+                        return None
+            else:
+                logger.warning(f"[DNA WebSocket] waiting for connection to be established timeout ({timeout}s)")
+                # 超时后清理连接
+                with self._lock:
+                    self._cleanup_connection(key)
+                    self._ready_events.pop(key, None)
+                return None
+
+        return ws
 
     def get_active_tokens(self, limit: Optional[int] = 3) -> list[tuple[str, str]]:
         with self._lock:

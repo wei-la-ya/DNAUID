@@ -103,4 +103,10 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         300,
         86400,
     ),
+    "WebSocketWaitTime": GsIntConfig(
+        "WebSocket等待时间",
+        "等待WebSocket连接建立完成的时间(秒)",
+        5,
+        30,
+    ),
 }
