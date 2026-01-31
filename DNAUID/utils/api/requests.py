@@ -3,6 +3,7 @@ import random
 import asyncio
 import inspect
 from typing import Any, Dict, List, Union, Literal, Mapping, Optional
+from datetime import datetime
 
 import aiohttp
 
@@ -22,6 +23,7 @@ from .api import (
     ROLE_DETAIL_URL,
     GET_SMS_CODE_URL,
     HAVE_SIGN_IN_URL,
+    ACTIVITY_LIST_URL,
     CALENDAR_LIST_URL,
     GET_POST_LIST_URL,
     REFRESH_TOKEN_URL,
@@ -418,6 +420,23 @@ class DNAApi:
         if res.is_success and isinstance(res.data, dict):
             return res.data.get("vos", [])
         return []
+
+    async def get_activity_info(self):
+        now = datetime.now()
+        headers = await get_base_header(dev_code=get_dev_code())
+        rsa_pub = await self.get_rsa_public_key()
+        payload = {
+            "curTime": now.strftime("%Y-%m-%d %H:%M:%S"),  # 当前时间
+            "endTime": "2026-04-05 23:59:59",
+            "startTime": "2025-12-01 00:00:00",
+        }
+        headers, payload = get_signed_headers_and_body(
+            url=ACTIVITY_LIST_URL,
+            header=headers,
+            data=payload,
+            rsa_public_key=rsa_pub,
+        )
+        return await self._dna_request(ACTIVITY_LIST_URL, "POST", headers, data=payload)
 
     async def _dna_request(
         self,

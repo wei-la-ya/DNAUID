@@ -44,6 +44,7 @@ ANN_LIST_URL = f"{MAIN_URL}/user/mine"
 
 # calendar
 CALENDAR_LIST_URL = f"{MAIN_URL}/forum/wiki/home/page/list"
+ACTIVITY_LIST_URL = f"{MAIN_URL}/encourage/calendar/Activity/list"
 
 
 def get_local_proxy_url():

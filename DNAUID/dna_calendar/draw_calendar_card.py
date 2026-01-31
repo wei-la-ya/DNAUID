@@ -67,15 +67,40 @@ class CalendarContent(BaseModel):
 
 
 async def draw_calendar_img(ev: Event):
+    # 新接口
+    activity_res = await dna_api.get_activity_info()
+    if activity_res.is_success and isinstance(activity_res.data, dict):
+        activity_list = activity_res.data.get("activities", [])
+    else:
+        activity_list = []
+
+    # 旧接口
+    wiki_list = []
+    # 旧接口
+    wiki_list = []
     wiki_home = await dna_api.get_calendar_info()
-    if not wiki_home:
+    if wiki_home:
+        jumu = next(
+            filter(
+                lambda x: x["sectionType"] == 3 and x.get("activityUps", None) is not None,
+                wiki_home,
+            ),
+            None,
+        )
+        old_activity_list = next(
+            filter(
+                lambda x: x["sectionType"] == 3 and x.get("activities", None) is not None,
+                wiki_home,
+            ),
+            None,
+        )
+        if jumu:
+            wiki_list.append(jumu)
+        if old_activity_list:
+            wiki_list.append(old_activity_list)
+
+    if not activity_list and not wiki_list:
         return "获取日历失败"
-
-    jumu = next(filter(lambda x: x["sectionType"] == 3 and x.get("activityUps", None) is not None, wiki_home), None)
-
-    activity_list = next(
-        filter(lambda x: x["sectionType"] == 3 and x.get("activities", None) is not None, wiki_home), None
-    )
 
     # 当前时间
     now = datetime.now()
@@ -100,29 +125,51 @@ async def draw_calendar_img(ev: Event):
     )
     content.append(cc)
 
-    if jumu:
-        for activityUp in jumu["activityUps"]:
-            start_time = activityUp.get("createTime")
-            end_time = activityUp.get("endTime")
-            name = activityUp.get("name")
-            up_list = [
-                CalendarContent(
-                    title=name or c["name"],
-                    pic=c["pic"],
-                    start_time=start_time / 1000 if start_time else "",
-                    end_time=end_time / 1000 if end_time else "",
-                )
-                for c in activityUp["contents"]
-            ]
-            content.extend(up_list)
+    # 处理旧接口数据
+    if wiki_list:
+        for item in wiki_list:
+            # jumu activityUps
+            if "activityUps" in item:
+                for activityUp in item["activityUps"]:
+                    start_time = activityUp.get("createTime")
+                    end_time = activityUp.get("endTime")
+                    name = activityUp.get("name")
+                    up_list = [
+                        CalendarContent(
+                            title=name or c["name"],
+                            pic=c["pic"],
+                            start_time=int(start_time / 1000) if start_time else "",
+                            end_time=int(end_time / 1000) if end_time else "",
+                        )
+                        for c in activityUp["contents"]
+                    ]
+                    content.extend(up_list)
 
+            # activities
+            if "activities" in item:
+                for activity in item["activities"]:
+                    cc = CalendarContent(
+                        title=activity["name"],
+                        pic=activity["pic"],
+                        start_time=int(activity["createTime"] / 1000) if activity["createTime"] else "",
+                        end_time=int(activity["endTime"] / 1000) if activity["endTime"] else "",
+                    )
+                    content.append(cc)
+
+    # 处理新接口数据
     if activity_list:
-        for activity in activity_list["activities"]:
+        for activity in activity_list:
+            if activity.get("cycleDay", -1) != -1:
+                continue
+            if "委托密函轮换" in activity["name"]:
+                continue
+            start_time = activity.get("startTime")
+            end_time = activity.get("endTime")
             cc = CalendarContent(
                 title=activity["name"],
-                pic=activity["pic"],
-                start_time=activity["createTime"] / 1000 if activity["createTime"] else "",
-                end_time=activity["endTime"] / 1000 if activity["endTime"] else "",
+                pic=activity.get("icon", ""),
+                start_time=int(start_time / 1000) if start_time else "",
+                end_time=int(end_time / 1000) if end_time else "",
             )
             content.append(cc)
 
@@ -173,7 +220,7 @@ async def draw_calendar_img(ev: Event):
 
             status, left, color = get_date_range(dateRange, now)
             if left:
-                event_bg_draw.text((260, 130), f"{left}", color, dna_font_origin(20), "lm")
+                event_bg_draw.text((140, 130), f"{left}", color, dna_font_origin(20), "lm")
                 status = f"{status}: "
 
             # 格式化
@@ -182,11 +229,23 @@ async def draw_calendar_img(ev: Event):
 
             # 起止时间
             formatted_date_range = f"{formatted_start} ~ {formatted_end}"
-            event_bg_draw.text((160, 95), f"{formatted_date_range}", "white", dna_font_origin(20), "lm")
+            event_bg_draw.text(
+                (40, 95),
+                f"{formatted_date_range}",
+                "white",
+                dna_font_origin(20),
+                "lm",
+            )
             # 时间小图标
-            event_bg.alpha_composite(time_icon, (155, 115))
+            event_bg.alpha_composite(time_icon, (35, 115))
             # 状态
-            event_bg_draw.text((190, 130), f"{status}", "white", dna_font_origin(20), "lm")
+            event_bg_draw.text(
+                (70, 130),
+                f"{status}",
+                "white",
+                dna_font_origin(20),
+                "lm",
+            )
 
             # 添加进度条
             progress_x = 25
@@ -231,14 +290,21 @@ async def draw_calendar_img(ev: Event):
                     fill=fill_color,
                 )
 
-        if "http" in cont.pic:
-            linkUrl = await download_pic_from_url(CALENDAR_PATH, cont.pic)
-        else:
-            linkUrl = Image.open(TEXT_PATH / cont.pic)
+        if cont.pic:
+            if "http" in cont.pic:
+                linkUrl = await download_pic_from_url(CALENDAR_PATH, cont.pic)
+            else:
+                linkUrl = Image.open(TEXT_PATH / cont.pic)
 
-        linkUrl = linkUrl.resize((100, 100))  # type: ignore
-        event_bg.paste(linkUrl, (40, 40), linkUrl)
-        event_bg_draw.text((160, 60), f"{cont.title}", COLOR_GOLDENROD, dna_font_origin(30), "lm")
+            linkUrl = linkUrl.resize((100, 100))
+            event_bg.paste(linkUrl, (400, 40), linkUrl)
+        event_bg_draw.text(
+            (40, 60),
+            f"{cont.title}",
+            COLOR_GOLDENROD,
+            dna_font_origin(30),
+            "lm",
+        )
 
         img.alpha_composite(event_bg, (70 + (i % 2) * 540, _high))
         if i % 2 == 1:

@@ -14,7 +14,7 @@ ios_base_header = {
 }
 
 h5_base_header = {
-    "version": "3.11.0",
+    "version": "3.11.1",
     "source": "h5",
     "Content-Type": CONTENT_TYPE,
     "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36",

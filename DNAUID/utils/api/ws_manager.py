@@ -140,6 +140,8 @@ class WebSocketManager:
                 pass
 
     def get_connection(self, token: str, dev_code: str, wait_ready: bool = False, timeout: float = 5) -> Optional[Any]:
+        if not token or not dev_code:
+            return None
         key = (token, dev_code)
 
         with self._lock:
