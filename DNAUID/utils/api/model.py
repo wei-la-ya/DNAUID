@@ -208,10 +208,38 @@ class RoleDetail(BaseModel):
     gradeLevel: int = Field(description="溯源等级 0-6")
     elementName: str = Field(description="元素名称")
     modes: List[Mode] = Field(description="mode")
+    conWeaponEid: Optional[str] = Field(description="同律武器eid", default=None)
+    conWeaponId: Optional[int] = Field(description="同律武器id", default=None)
 
 
 class DNARoleDetailRes(BaseModel):
     charDetail: RoleDetail = Field(description="角色详情")
+
+
+class WeaponAttribute(BaseModel):
+    atk: int = Field(description="攻击")
+    crd: float = Field(description="暴击率")
+    cri: float = Field(description="暴击伤害")
+    speed: float = Field(description="攻击速度")
+    trigger: float = Field(description="触发率")
+
+
+class WeaponDetail(BaseModel):
+    attribute: WeaponAttribute = Field(description="武器属性")
+    currentVolume: int = Field(description="当前魔之楔")
+    elementIcon: str = Field(description="元素图标")
+    elementName: str = Field(description="元素名称")
+    icon: str = Field(description="武器头像")
+    id: int = Field(description="武器id")
+    level: int = Field(description="武器等级")
+    modes: List[Mode] = Field(description="mode")
+    name: str = Field(description="武器名称")
+    skillLevel: int = Field(description="武器精炼等级")
+    sumVolume: int = Field(description="最大魔之楔")
+
+
+class DNAWeaponDetailRes(BaseModel):
+    weaponDetail: WeaponDetail = Field(description="武器详情")
 
 
 class DNADayAward(BaseModel):

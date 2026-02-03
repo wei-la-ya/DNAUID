@@ -152,7 +152,7 @@ async def get_weapon_img(weapon_id: Union[str, int], pic_url: Optional[str] = No
 async def get_attr_img(attr_id: Optional[Union[str, int]] = None, pic_url: Optional[str] = None) -> Image.Image:
     if attr_id is None:
         if pic_url:
-            attr_id = pic_url.split("/")[-1]
+            attr_id = pic_url.split("/")[-1].split(".")[0]
         else:
             raise ValueError("attr_id 和 pic_url 不能同时为空")
 
@@ -171,7 +171,7 @@ async def get_attr_img(attr_id: Optional[Union[str, int]] = None, pic_url: Optio
 async def get_weapon_attr_img(attr_id: Optional[Union[str, int]] = None, pic_url: Optional[str] = None) -> Image.Image:
     if attr_id is None:
         if pic_url:
-            attr_id = pic_url.split("/")[-1]
+            attr_id = pic_url.split("/")[-1].split(".")[0]
         else:
             raise ValueError("attr_id 和 pic_url 不能同时为空")
 

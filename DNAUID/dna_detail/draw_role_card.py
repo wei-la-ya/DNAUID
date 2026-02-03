@@ -22,13 +22,16 @@ from ..utils.image import (
     get_grade_img,
     get_paint_img,
     get_skill_img,
+    get_weapon_img,
     get_smooth_drawer,
     get_avatar_title_img,
 )
 from ..utils.api.model import (
+    WeaponDetail,
     RoleInsForTool,
     DNARoleDetailRes,
     DNARoleForToolRes,
+    DNAWeaponDetailRes,
 )
 from ..utils.msgs.notify import (
     dna_not_found,
@@ -64,6 +67,15 @@ attr_list = [
     ("skillEfficiency", "技能效益", "icon4.png"),
     ("strongValue", "昂扬", "icon3.png"),
     ("enmityValue", "背水", "icon2.png"),
+]
+
+weapon_attr_list = [
+    ("type", "武器类型", "icon16.png"),
+    ("atk", "攻击", "icon17.png"),
+    ("crd", "暴击率", "icon13.png"),
+    ("cri", "暴击伤害", "icon12.png"),
+    ("speed", "攻击速度", "icon14.png"),
+    ("trigger", "触发率", "icon15.png"),
 ]
 
 
@@ -116,7 +128,28 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
     role_detail = DNARoleDetailRes.model_validate(role_detail.data)
     role_detail = role_detail.charDetail
 
-    card = get_dna_bg(1000, 2000, "bg2")
+    con_weapon_detail: Optional[WeaponDetail] = None
+    if role_detail.conWeaponId and role_detail.conWeaponEid:
+        con_weapon = await dna_api.get_weapon_detail(
+            dna_user.cookie, role_detail.conWeaponId, role_detail.conWeaponEid, dna_user.dev_code
+        )
+        if con_weapon.is_success:
+            con_weapon = DNAWeaponDetailRes.model_validate(con_weapon.data)
+            con_weapon_detail = con_weapon.weaponDetail
+
+    # 提前获取头像与分割线，用于计算总高度
+    div_img = get_div()
+    avatar_title = await get_avatar_title_img(
+        ev,
+        role_show.roleId,
+        role_show.roleName,
+        user_level=role_show.level,
+        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "游戏时长")],
+    )
+    avatar_title = avatar_title.resize((1000, 1000 * avatar_title.height // avatar_title.width))
+    con_weapon_h = 450 if con_weapon_detail else 0
+    total_h = 850 + div_img.height + global_skill_bg.height + con_weapon_h + div_img.height + avatar_title.height + 600
+    card = get_dna_bg(1000, total_h, "bg2")
 
     # paint
     paint_img = await get_paint_img(char_id, role_detail.paint)
@@ -173,7 +206,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
         prop_info.alpha_composite(icon, (0, 0))
         # 属性名
         prop_info_draw.text(
-            (50, 25),
+            (53, 25),
             attrs[1],
             COLOR_WHITE,
             font=dna_font_26,
@@ -191,8 +224,9 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
 
     card.alpha_composite(attr_bg, (550, 200))
 
-    div = get_div()
-    card.alpha_composite(div, (0, 850))
+    h_index = 850
+    card.alpha_composite(div_img, (0, h_index))
+    h_index += div_img.height
 
     # 技能
     for index, skill in enumerate(role_detail.skills):
@@ -224,10 +258,109 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
 
         skill_bg_draw.text((160, 94), f"Lv.{skill.level}", COLOR_WHITE, dna_font_26, "mm")
 
-        card.alpha_composite(skill_bg, (50 + index * 300, 920))
+        card.alpha_composite(skill_bg, (50 + index * 300, h_index))
+    h_index += global_skill_bg.height
 
-    div = get_div()
-    card.alpha_composite(div, (0, 1100))
+    if con_weapon_detail:
+        con_weapon_mod_bg = Image.new("RGBA", (1000, 500), (0, 0, 0, 0))
+        con_weapon_mod_bg_draw = ImageDraw.Draw(con_weapon_mod_bg)
+        # 横向排列4个mod 俩左 俩右
+        sortmods = [
+            con_weapon_detail.modes[0],
+            con_weapon_detail.modes[2],
+            con_weapon_detail.modes[3],
+            con_weapon_detail.modes[1],
+        ]
+        for index, mod in enumerate(sortmods):
+            quality = mod.quality or 1
+            left = True if index <= 1 else False
+            mod_bg = Image.open(TEXT_PATH / f"mod/mod_{'left' if left else 'right'}_{quality}.png")
+            mod_bg_draw = ImageDraw.Draw(mod_bg)
+
+            if mod.id != -1 and mod.name:
+                mod_img = await get_mod_img(mod.id, mod.icon)
+                mod_img = mod_img.resize((180, 180))
+                mod_bg.alpha_composite(mod_img, (35, 15))
+                # 名字
+                size = (115, 180) if left else (140, 180)
+                mod_bg_draw.text(size, mod.name, COLOR_WHITE, dna_font_26, "mm")
+
+            if mod.id != -1 and mod.level:
+                size = (54, 30, 106, 60) if left else (134, 30, 186, 60)
+                get_smooth_drawer().rounded_rectangle(
+                    size,
+                    10,
+                    COLOR_ORANGE_RED,
+                    target=mod_bg,
+                )
+                size = (80, 44) if left else (160, 44)
+                mod_bg_draw.text(size, f"+{mod.level}", COLOR_WHITE, dna_font_26, "mm")
+                # mod_bg_draw.text(size, f"+{10}", COLOR_WHITE, dna_font_26, "mm")
+
+            # 横向排列4个mod
+            con_weapon_mod_bg.alpha_composite(mod_bg, (40 + index * 220, 0))
+
+        # 武器背景
+        weapon_bg = Image.open(TEXT_PATH / "weapon_bg.png")
+        # 贴武器
+        weapon_img = await get_weapon_img(con_weapon_detail.id, con_weapon_detail.icon)
+        weapon_img = weapon_img.resize((180, 180))
+        weapon_bg.alpha_composite(weapon_img, (-10, -10))
+
+        # 贴武器等级
+        ellipse = Image.new("RGBA", (80, 35))
+        ellipse_draw = ImageDraw.Draw(ellipse)
+        get_smooth_drawer().rounded_rectangle((0, 0, 80, 35), fill=COLOR_FIRE_BRICK, radius=7, target=ellipse)
+        ellipse_draw.text((40, 17), f"Lv.{con_weapon_detail.level}", COLOR_WHITE, dna_font_26, "mm")
+        weapon_bg.alpha_composite(ellipse, (150, 100))
+
+        weapon_bg = weapon_bg.resize((int(weapon_bg.width * 0.8), int(weapon_bg.height * 0.8)))
+
+        con_weapon_mod_bg.alpha_composite(weapon_bg, (70, 250))
+        # 贴武器名字
+        con_weapon_mod_bg_draw.text((70, 385), con_weapon_detail.name, COLOR_WHITE, dna_font_26, "lm")
+        # 武器属性
+        weapon_attr = Image.open(TEXT_PATH / "weapon_attr.png")
+        weapon_attr_draw = ImageDraw.Draw(weapon_attr)
+
+        # 先左再右，先上再下，3行2列
+        for index, attrs in enumerate(weapon_attr_list):
+            if index == 0:
+                attr_value = f"{con_weapon_detail.elementName}"
+            else:
+                value = getattr(con_weapon_detail.attribute, attrs[0])
+                if isinstance(value, float):
+                    value = f"{value:.0%}"
+                else:
+                    value = f"{value}"
+                attr_value = value
+
+            icon = Image.open(TEXT_PATH / f"icons/{attrs[2]}")
+            # icon
+            weapon_attr.alpha_composite(icon, (index % 2 * 320, index // 2 * 53))
+            # 属性名
+            weapon_attr_draw.text(
+                (53 + (index % 2) * 320, 25 + (index // 2) * 53),
+                attrs[1],
+                COLOR_WHITE,
+                font=dna_font_26,
+                anchor="lm",
+            )
+            # 属性值
+            weapon_attr_draw.text(
+                (310 + (index % 2) * 318, 25 + (index // 2) * 53),
+                (attr_value if "%" in attr_value or not attr_value.isdigit() else f"{int(attr_value):,}"),
+                COLOR_WHITE,
+                font=dna_font_26,
+                anchor="rm",
+            )
+            con_weapon_mod_bg.alpha_composite(weapon_attr, (290, 250))
+
+        card.alpha_composite(con_weapon_mod_bg, (0, h_index))
+        h_index += 450
+
+    card.alpha_composite(div_img, (0, h_index))
+    h_index += div_img.height
 
     # mod
     all_mod_bg = Image.new("RGBA", (1000, 500), (0, 0, 0, 0))
@@ -246,7 +379,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
 
         if mod.id != -1 and mod.level:
             get_smooth_drawer().rounded_rectangle(
-                (60, 30, 100, 60),
+                (54, 30, 106, 60),
                 10,
                 COLOR_ORANGE_RED,
                 target=mod_bg,
@@ -272,7 +405,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
 
         if mod.id != -1 and mod.level:
             get_smooth_drawer().rounded_rectangle(
-                (140, 30, 180, 60),
+                (134, 30, 186, 60),
                 10,
                 COLOR_ORANGE_RED,
                 target=mod_bg,
@@ -305,18 +438,11 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
 
     all_mod_bg.alpha_composite(mod_bg, (415, 100))
 
-    card.alpha_composite(all_mod_bg, (0, 1200))
+    card.alpha_composite(all_mod_bg, (0, h_index))
+    h_index += 500
 
-    # 头像等
-    avatar_title = await get_avatar_title_img(
-        ev,
-        role_show.roleId,
-        role_show.roleName,
-        user_level=role_show.level,
-        other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "游戏时长")],
-    )
-    avatar_title = avatar_title.resize((1000, 1000 * avatar_title.height // avatar_title.width))
-    card.alpha_composite(avatar_title, (0, 1750))
+    # 头像等（已在前面生成并用于计算总高度）
+    card.alpha_composite(avatar_title, (0, h_index))
 
     card = add_footer(card, 600)
     card = await convert_img(card)

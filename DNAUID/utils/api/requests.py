@@ -29,6 +29,7 @@ from .api import (
     REFRESH_TOKEN_URL,
     ROLE_FOR_TOOL_URL,
     SIGN_CALENDAR_URL,
+    WEAPON_DETAIL_URL,
     GET_POST_DETAIL_URL,
     GET_TASK_PROCESS_URL,
     GET_RSA_PUBLIC_KEY_URL,
@@ -241,6 +242,11 @@ class DNAApi:
         headers = await get_base_header(dev_code=dev_code, token=token)
         data = {"charId": char_id, "charEid": char_eid, "type": 1}
         return await self._dna_request(ROLE_DETAIL_URL, "POST", headers, data=data)
+
+    async def get_weapon_detail(self, token: str, weapon_id: int, weapon_eid: str, dev_code: str):
+        headers = await get_base_header(dev_code=dev_code, token=token)
+        data = {"weaponId": weapon_id, "weaponEid": weapon_eid, "type": 1}
+        return await self._dna_request(WEAPON_DETAIL_URL, "POST", headers, data=data)
 
     async def get_short_note_info(self, token: str, dev_code: str):
         headers = await get_base_header(dev_code=dev_code, token=token)
