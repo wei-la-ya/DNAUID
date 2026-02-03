@@ -47,6 +47,12 @@ global_close_weapon_bg = Image.open(TEXT_PATH / "bg/bg5.png")
 hang_num = 5
 
 
+def is_show_role_info_card():
+    from ..dna_config.dna_config import DNAConfig
+
+    return DNAConfig.get_config("RoleInfoCard").data
+
+
 class ItemTemp(BaseModel):
     type: Literal["role", "weapon"]
     id: int
@@ -55,6 +61,7 @@ class ItemTemp(BaseModel):
     element_icon: str
     icon: str
     grade_level: Optional[int] = None
+    unlocked: bool = False
 
 
 async def draw_role_info_card(bot: Bot, ev: Event):
@@ -93,13 +100,18 @@ async def draw_role_info_card(bot: Bot, ev: Event):
     )
     achievement_info.extend([("总成就数", str(role_show.roleAchv.total))])
 
+    show_none = is_show_role_info_card()
+
+    role_len = len(role_show.roleChars) if show_none else role_unlocked_count
+    lang_len = len(role_show.langRangeWeapons) if show_none else lang_weapon_unlocked_count
+    close_len = len(role_show.closeWeapons) if show_none else close_weapon_unlocked_count
     h = 650 + 100 + 50  # title+info+footer
-    if role_unlocked_count > 0:
-        h += 320 * math.ceil(role_unlocked_count / hang_num) + 70  # bar+role
-    if lang_weapon_unlocked_count > 0:
-        h += 320 * math.ceil(lang_weapon_unlocked_count / hang_num) + 70  # bar+weapon
-    if close_weapon_unlocked_count > 0:
-        h += 320 * math.ceil(close_weapon_unlocked_count / hang_num) + 70  # bar+weapon
+    if role_len > 0:
+        h += 320 * math.ceil(role_len / hang_num) + 70  # bar+role
+    if lang_len > 0:
+        h += 320 * math.ceil(lang_len / hang_num) + 70  # bar+weapon
+    if close_len > 0:
+        h += 320 * math.ceil(close_len / hang_num) + 70  # bar+weapon
     card = get_dna_bg(1200, h, "bg1")
 
     start_y = 0
@@ -151,11 +163,12 @@ async def draw_role_info_card(bot: Bot, ev: Event):
                 element_icon=role.elementIcon,
                 icon=role.icon,
                 grade_level=role.gradeLevel,
+                unlocked=role.unLocked,
             )
             for role in role_show.roleChars
-            if role.unLocked
         ],
         global_role_bg,
+        show_none,
     )
 
     # div bg
@@ -177,11 +190,12 @@ async def draw_role_info_card(bot: Bot, ev: Event):
                 element_icon=weapon.elementIcon,
                 icon=weapon.icon,
                 grade_level=weapon.skillLevel,
+                unlocked=weapon.unLocked,
             )
             for weapon in role_show.closeWeapons
-            if weapon.unLocked
         ],
         global_close_weapon_bg,
+        show_none,
     )
 
     # div bg
@@ -203,11 +217,12 @@ async def draw_role_info_card(bot: Bot, ev: Event):
                 element_icon=weapon.elementIcon,
                 icon=weapon.icon,
                 grade_level=weapon.skillLevel,
+                unlocked=weapon.unLocked,
             )
             for weapon in role_show.langRangeWeapons
-            if weapon.unLocked
         ],
         global_lang_weapon_bg,
+        show_none,
     )
 
     card = add_footer(card, 600)
@@ -215,7 +230,8 @@ async def draw_role_info_card(bot: Bot, ev: Event):
     await bot.send(card)
 
 
-async def _draw_item(card: Image.Image, start_y: int, items: List[ItemTemp], item_bg: Image.Image):
+async def _draw_item(card: Image.Image, start_y: int, items: List[ItemTemp], item_bg: Image.Image, show_none: bool):
+    items = items if show_none else [i for i in items if i.unlocked]
     for index, item in enumerate(items):
         temp_bg = Image.new("RGBA", (210, 300))
         temp_bg2 = Image.new("RGBA", (210, 300))
@@ -237,7 +253,10 @@ async def _draw_item(card: Image.Image, start_y: int, items: List[ItemTemp], ite
         # name
         fg_draw.text((100, 275), item.name, COLOR_WHITE, dna_font_20, "mm")
         # level
-        fg_draw.text((128, 215), f"Lv.{item.level}", COLOR_WHITE, dna_font_20, "mm")
+        if item.level > 0:
+            fg_draw.text((128, 215), f"Lv.{item.level}", COLOR_WHITE, dna_font_20, "mm")
+        else:
+            fg_draw.text((128, 215), "未解锁", COLOR_WHITE, dna_font_20, "mm")
         # element
         if item.type == "role":
             attr_img = await get_attr_img(pic_url=item.element_icon)
@@ -257,6 +276,10 @@ async def _draw_item(card: Image.Image, start_y: int, items: List[ItemTemp], ite
             ellipse.alpha_composite(grade_img, (0, 5))
             fg.alpha_composite(ellipse, (145, 35))
 
+        if not item.unlocked:
+            # 置灰
+            mine_bg = mine_bg.convert("RGBA").point(lambda x: x * 0.5)
+            fg = fg.convert("RGBA").point(lambda x: x * 0.5)
         # 一行5个 先左再右
         card.alpha_composite(mine_bg, (50 + index % 5 * 230, start_y + index // 5 * 320))
         card.alpha_composite(fg, (50 + index % 5 * 230, start_y + index // 5 * 320))

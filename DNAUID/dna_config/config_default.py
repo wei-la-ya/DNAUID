@@ -109,4 +109,9 @@ CONFIG_DEFAULT: Dict[str, GSC] = {
         5,
         30,
     ),
+    "RoleInfoCard": GsBoolConfig(
+        "角色信息卡片是否显示未拥有的角色和武器",
+        "开启就显示全部，关闭只显示已拥有的角色和武器",
+        True,
+    ),
 }
