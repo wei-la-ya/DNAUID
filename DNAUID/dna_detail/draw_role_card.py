@@ -229,7 +229,7 @@ async def draw_role_card(bot: Bot, ev: Event, char_name: str):
     h_index += div_img.height
 
     # 技能
-    for index, skill in enumerate(role_detail.skills):
+    for index, skill in enumerate(role_detail.skills[:3]):
         skill_bg = global_skill_bg.copy()
         skill_bg_draw = ImageDraw.Draw(skill_bg)
 
