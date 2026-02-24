@@ -5,7 +5,7 @@ from gsuid_core.bot import Bot
 from gsuid_core.models import Event
 
 from ..utils import dna_api
-from .login_router import get_cookie, page_login, token_login
+from .login_router import get_cookie, page_login
 from ..utils.msgs.notify import (
     dna_login_fail,
     send_dna_notify,
@@ -39,8 +39,8 @@ async def dna_login(bot: Bot, ev: Event):
     if text == "":
         return await page_login(bot, ev)
 
-    if text.startswith("eyJh"):
-        return await token_login(bot, ev, text)
+    # if text.startswith("eyJh"):
+    #     return await token_login(bot, ev, text)
 
     return await dna_login_fail(bot, ev)
 
@@ -69,6 +69,7 @@ async def send_dna_logout_msg(bot: Bot, ev: Event):
         "绑定",
         "切换",
         "删除全部UID",
+        "删除全部uid",
         "删除",
         "查看",
     ),
@@ -110,10 +111,9 @@ async def send_dna_bind_uid_msg(bot: Bot, ev: Event):
         else:
             return await dna_bind_uid_result(bot, ev, uid, -5)
     elif "删除全部" in ev.command:
-        retcode = await DNABind.update_data(
+        retcode = await DNABind.delete_all_uid(
             user_id=qid,
             bot_id=ev.bot_id,
-            **{DNABind.get_gameid_name(None): None},
         )
         if retcode == 0:
             return await dna_bind_uid_result(bot, ev, code=3)

@@ -94,6 +94,38 @@ class DNABind(Bind, table=True):
         current_uids.append(uid)
         return await cls.update_data(user_id, bot_id, **{"uid": "_".join(current_uids)})
 
+    @classmethod
+    @with_session
+    async def delete_uid(
+        cls: Type[T_DNABind],
+        session: AsyncSession,
+        user_id: str,
+        bot_id: str,
+        uid: str,
+    ) -> int:
+        result = await cls.get_uid_list_by_game(user_id, bot_id)
+        if result is None or uid not in result:
+            return -1
+
+        result.remove(uid)
+        result = [i for i in result if i] if result else []
+
+        if not result:
+            # 没有剩余uid，使用 SQL DELETE 删除记录
+            sql = delete(cls).where(and_(col(cls.user_id) == user_id, col(cls.bot_id) == bot_id))
+            await session.execute(sql)
+            return 0
+        else:
+            # 还有剩余uid，更新记录
+            return await cls.update_data(user_id, bot_id, **{"uid": "_".join(result)})
+
+    @classmethod
+    @with_session
+    async def delete_all_uid(cls: Type[T_DNABind], session: AsyncSession, user_id: str, bot_id: str) -> int:
+        sql = delete(cls).where(and_(col(cls.user_id) == user_id, col(cls.bot_id) == bot_id))
+        await session.execute(sql)
+        return 0
+
 
 class DNAUser(User, table=True):
     __table_args__: Dict[str, Any] = {"extend_existing": True}
@@ -239,16 +271,16 @@ class DNAUser(User, table=True):
             or_(col(cls.status) == "无效", col(cls.cookie) == ""),
         )
         result = await session.execute(sql)
-        return result.rowcount
+        return result.rowcount  # type: ignore
 
     @classmethod
     @with_session
     async def delete_cookie(
         cls,
         session: AsyncSession,
-        uid: str,
         user_id: str,
         bot_id: str,
+        uid: str,
     ):
         sql = delete(cls).where(
             and_(
@@ -258,7 +290,7 @@ class DNAUser(User, table=True):
             )
         )
         result = await session.execute(sql)
-        return result.rowcount
+        return result.rowcount  # type: ignore
 
 
 class DNASign(BaseIDModel, table=True):

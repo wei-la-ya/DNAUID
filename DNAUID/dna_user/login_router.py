@@ -47,7 +47,7 @@ async def page_login(bot: Bot, ev: Event):
 async def token_login(bot: Bot, ev: Event, token: str):
     """token登录入口"""
     login_service = DNALoginService(bot, ev)
-    login_result = await login_service.dna_login_token(token=token)
+    login_result = await login_service.dna_login_token(token=token)  # pyright: ignore[reportCallIssue]
     await send_dna_notify(bot, ev, login_result)
 
 
