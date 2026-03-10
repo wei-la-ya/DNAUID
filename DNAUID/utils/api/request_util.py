@@ -13,6 +13,14 @@ ios_base_header = {
     "User-Agent": "DoubleHelix/3 CFNetwork/3860.300.31 Darwin/25.3.0",
 }
 
+android_base_header = {
+    "version": "1.2.0",
+    "source": "android",
+    "Content-Type": CONTENT_TYPE,
+    "User-Agent": "okhttp/3.10.0",
+}
+
+
 h5_base_header = {
     "version": "3.11.1",
     "source": "h5",
@@ -29,7 +37,7 @@ async def get_base_header(
     token: Optional[str] = None,
 ):
     """默认获取ios头"""
-    header = copy.deepcopy(h5_base_header if is_h5 else ios_base_header)
+    header = copy.deepcopy(h5_base_header if is_h5 else android_base_header)
     if dev_code:
         header["devCode"] = dev_code
     if is_need_origin:

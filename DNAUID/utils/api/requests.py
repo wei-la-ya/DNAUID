@@ -37,7 +37,8 @@ from .api import (
     get_need_proxy_func,
     get_no_need_proxy_func,
 )
-from .sign import get_dev_code, check_decrypt_dnum, get_signed_headers_and_body
+from .dnum import check_decrypt_dnum
+from .sign import get_dev_code, get_signed_headers_and_body
 from ..utils import timed_async_cache
 from .ws_manager import get_ws_manager
 from .request_util import RespCode, DNAApiResp, get_base_header
