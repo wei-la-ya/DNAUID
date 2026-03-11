@@ -1,6 +1,7 @@
 from gsuid_core.bot import Bot
 from gsuid_core.models import Event
-from gsuid_core.plugins.DNAUID.DNAUID.utils.utils import should_use_other_id
+
+from ...utils.utils import get_using_id
 
 title = "[二重螺旋]\n"
 
@@ -16,7 +17,7 @@ async def send_dna_notify(bot: Bot, ev: Event, msg: str, need_at: bool = True):
 async def dna_uid_invalid(bot: Bot, ev: Event, need_at: bool = True):
     from ...dna_config.prefix import DNA_PREFIX
 
-    is_use_other_id = should_use_other_id(ev)
+    is_use_other_id = get_using_id(ev) != ev.user_id
     msg = (
         [
             "UID无效，请重新绑定",
@@ -31,7 +32,7 @@ async def dna_uid_invalid(bot: Bot, ev: Event, need_at: bool = True):
 
 async def dna_token_invalid(bot: Bot, ev: Event, need_at: bool = True):
     msg = ["Token无效，请重新登录"]
-    is_use_other_id = should_use_other_id(ev)
+    is_use_other_id = get_using_id(ev) != ev.user_id
     msg = "\n".join(msg) if not is_use_other_id else "该用户的 Token 无效"
     return await send_dna_notify(bot, ev, msg, need_at)
 

@@ -24,7 +24,7 @@ from ..utils.image import (
     get_weapon_attr_img,
     get_avatar_title_img,
 )
-from ..utils.utils import get_uid_by_config, should_use_other_id
+from ..utils.utils import get_using_id
 from ..utils.api.model import DNARoleForToolRes
 from ..utils.msgs.notify import (
     dna_not_found,
@@ -66,9 +66,7 @@ class ItemTemp(BaseModel):
 
 
 async def draw_role_info_card(bot: Bot, ev: Event):
-    user_id = get_uid_by_config(ev)
-    # 根据配置决定是否使用被AT用户的头像
-    avatar_user_id = ev.at if should_use_other_id(ev) else None
+    user_id = get_using_id(ev)
     uid = await DNABind.get_uid_by_game(user_id, ev.bot_id)
     if not uid:
         await dna_uid_invalid(bot, ev)
@@ -132,7 +130,7 @@ async def draw_role_info_card(bot: Bot, ev: Event):
         role_show.roleName,
         user_level=role_show.level,
         other_info=[(i.paramKey, i.paramValue) for i in role_show.params if i.paramKey in ("总活跃天数", "游戏时长")],
-        avatar_user_id=avatar_user_id,
+        avatar_user_id=user_id,
     )
     card.alpha_composite(avatar_title, (-50, 400))
 

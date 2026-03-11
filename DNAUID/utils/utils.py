@@ -9,8 +9,6 @@ import httpx
 
 from gsuid_core.models import Event
 
-from ..dna_config.dna_config import DNAConfig
-
 TZ = ZoneInfo("Asia/Shanghai")
 
 
@@ -145,21 +143,7 @@ def get_two_days_ago_date():
     return two_days_ago.strftime("%Y-%m-%d")
 
 
-def get_uid_by_config(ev: Event) -> str:
-    """
-    通过 “允许AT查询他人信息” 配置获取他人或自己的 UID
-    """
-    # 获取at的id
-    at_id = ev.at
-    # 如果有at且允许AT查询，则使用被at方的UID查询；否则使用自己的UID
-    user_id = at_id if should_use_other_id(ev) else ev.user_id
-    return user_id
+def get_using_id(ev: Event) -> str:
+    from ..dna_config.dna_config import DNAConfig
 
-
-def should_use_other_id(ev: Event) -> bool:
-    """
-    通过 “允许AT查询他人信息” 配置是否使用其它人的 UID
-    """
-    at_id = ev.at
-    allow_at = DNAConfig.get_config("AllowAtQuery").data
-    return bool(at_id and allow_at)
+    return ev.at if ev.at and DNAConfig.get_config("AllowAtQuery").data else ev.user_id
