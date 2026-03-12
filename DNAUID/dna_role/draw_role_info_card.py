@@ -29,6 +29,7 @@ from ..utils.api.model import DNARoleForToolRes
 from ..utils.msgs.notify import (
     dna_not_found,
     dna_uid_invalid,
+    dna_peek_blocked,
     dna_token_invalid,
 )
 from ..utils.database.models import DNABind
@@ -66,7 +67,11 @@ class ItemTemp(BaseModel):
 
 
 async def draw_role_info_card(bot: Bot, ev: Event):
-    user_id = get_using_id(ev)
+    user_id = await get_using_id(ev)
+    # 检查是否被防偷窥阻止（有@目标但被阻止）
+    if ev.at and user_id == ev.user_id:
+        await dna_peek_blocked(bot, ev)
+        return
     uid = await DNABind.get_uid_by_game(user_id, ev.bot_id)
     if not uid:
         await dna_uid_invalid(bot, ev)

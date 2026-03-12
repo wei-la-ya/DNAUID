@@ -143,7 +143,32 @@ def get_two_days_ago_date():
     return two_days_ago.strftime("%Y-%m-%d")
 
 
-def get_using_id(ev: Event) -> str:
+async def get_using_id(ev: Event) -> str:
     from ..dna_config.dna_config import DNAConfig
+    from ..utils.database.models import DNAPrivacy, DNAGroupPrivacy
 
-    return ev.at if ev.at and DNAConfig.get_config("AllowAtQuery").data else ev.user_id
+    # 没有 @ 目标
+    if not ev.at:
+        return ev.user_id
+
+    # 功能未开启
+    allow_config = DNAConfig.get_config("AllowAtQuery")
+    if not allow_config or not allow_config.data:
+        return ev.user_id
+
+    # 检查群是否有强制隐私设置（优先级最高）
+    if ev.group_id:
+        group_privacy = await DNAGroupPrivacy.check_group_force_privacy(ev.group_id, ev.bot_id)
+        if group_privacy is not None:
+            # 群有强制设置
+            if not group_privacy:
+                # 强制全体防偷窥，不允许查询他人
+                return ev.user_id
+            # 强制全体开偷窥，允许查询
+            return ev.at
+
+    # 检查被@用户的隐私设置
+    privacy = await DNAPrivacy.get_privacy_setting(ev.at, ev.bot_id)
+    if privacy and not privacy.allow_peek:
+        return ev.user_id
+    return ev.at

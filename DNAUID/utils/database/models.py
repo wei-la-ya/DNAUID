@@ -28,6 +28,8 @@ exec_list.extend(
 T_DNABind = TypeVar("T_DNABind", bound="DNABind")
 T_DNAUser = TypeVar("T_DNAUser", bound="DNAUser")
 T_DNASign = TypeVar("T_DNASign", bound="DNASign")
+T_DNAPrivacy = TypeVar("T_DNAPrivacy", bound="DNAPrivacy")
+T_DNAGroupPrivacy = TypeVar("T_DNAGroupPrivacy", bound="DNAGroupPrivacy")
 
 
 _DB_WRITE_LOCK = asyncio.Lock()
@@ -401,6 +403,165 @@ class DNASign(BaseIDModel, table=True):
         await session.execute(sql)
 
 
+class DNAPrivacy(BaseIDModel, table=True):
+    """隐私设置表：存储用户的窥屏权限设置"""
+
+    __table_args__: Dict[str, Any] = {"extend_existing": True}
+    user_id: str = Field(default=None, title="用户ID")
+    bot_id: str = Field(default=None, title="Bot ID")
+    group_id: Optional[str] = Field(default=None, title="群组ID")
+    allow_peek: bool = Field(default=True, title="允许被窥屏")
+
+    @classmethod
+    @with_session
+    async def get_privacy_setting(
+        cls: Type[T_DNAPrivacy],
+        session: AsyncSession,
+        user_id: str,
+        bot_id: str,
+    ) -> Optional[T_DNAPrivacy]:
+        """获取用户的隐私设置"""
+        sql = select(cls).where(
+            cls.user_id == user_id,
+            cls.bot_id == bot_id,
+        )
+        result = await session.execute(sql)
+        data = result.scalars().all()
+        return data[0] if data else None
+
+    @classmethod
+    @with_lock
+    @with_session
+    async def set_privacy_setting(
+        cls: Type[T_DNAPrivacy],
+        session: AsyncSession,
+        user_id: str,
+        bot_id: str,
+        allow_peek: bool,
+    ) -> T_DNAPrivacy:
+        """设置用户的隐私设置"""
+        sql = select(cls).where(
+            cls.user_id == user_id,
+            cls.bot_id == bot_id,
+        )
+        result = await session.execute(sql)
+        data = result.scalars().all()
+
+        if data:
+            # 更新现有记录
+            record = data[0]
+            record.allow_peek = allow_peek
+            return record
+        else:
+            # 创建新记录
+            new_record = cls(user_id=user_id, bot_id=bot_id, allow_peek=allow_peek)
+            session.add(new_record)
+            return new_record
+
+    @classmethod
+    @with_session
+    async def get_group_privacy_settings(
+        cls: Type[T_DNAPrivacy],
+        session: AsyncSession,
+        bot_id: str,
+        user_ids: List[str],
+    ) -> List[T_DNAPrivacy]:
+        """获取一组用户的隐私设置"""
+        sql = select(cls).where(
+            cls.bot_id == bot_id,
+            cls.user_id.in_(user_ids),
+        )
+        result = await session.execute(sql)
+        return list(result.scalars().all())
+
+
+class DNAGroupPrivacy(BaseIDModel, table=True):
+    """群组隐私设置表：存储群的全体隐私设置"""
+
+    __tablename__ = "dna_group_privacy"
+    __table_args__: Dict[str, Any] = {"extend_existing": True}
+    group_id: str = Field(default=None, title="群组ID", unique=True)
+    bot_id: str = Field(default=None, title="Bot ID")
+    force_allow_peek: Optional[bool] = Field(default=None, title="强制全体允许窥屏")
+
+    @classmethod
+    @with_session
+    async def get_group_privacy(
+        cls: Type[T_DNAGroupPrivacy],
+        session: AsyncSession,
+        group_id: str,
+        bot_id: str,
+    ) -> Optional[T_DNAGroupPrivacy]:
+        """获取群的隐私设置"""
+        sql = select(cls).where(
+            cls.group_id == group_id,
+            cls.bot_id == bot_id,
+        )
+        result = await session.execute(sql)
+        data = result.scalars().all()
+        return data[0] if data else None
+
+    @classmethod
+    @with_lock
+    @with_session
+    async def set_group_force_privacy(
+        cls: Type[T_DNAGroupPrivacy],
+        session: AsyncSession,
+        group_id: str,
+        bot_id: str,
+        force_allow_peek: Optional[bool],
+    ) -> T_DNAGroupPrivacy:
+        """设置群的强制隐私设置
+
+        force_allow_peek:
+        - True: 强制全体开偷窥
+        - False: 强制全体防偷窥
+        - None: 取消强制设置，恢复个人设置
+        """
+        sql = select(cls).where(
+            cls.group_id == group_id,
+            cls.bot_id == bot_id,
+        )
+        result = await session.execute(sql)
+        data = result.scalars().all()
+
+        if data:
+            # 更新现有记录
+            record = data[0]
+            record.force_allow_peek = force_allow_peek
+            return record
+        else:
+            # 创建新记录
+            new_record = cls(group_id=group_id, bot_id=bot_id, force_allow_peek=force_allow_peek)
+            session.add(new_record)
+            return new_record
+
+    @classmethod
+    @with_session
+    async def check_group_force_privacy(
+        cls: Type[T_DNAGroupPrivacy],
+        session: AsyncSession,
+        group_id: str,
+        bot_id: str,
+    ) -> Optional[bool]:
+        """检查群是否有强制隐私设置
+
+        返回值:
+        - True: 强制全体开偷窥
+        - False: 强制全体防偷窥
+        - None: 没有强制设置
+        """
+        sql = select(cls).where(
+            cls.group_id == group_id,
+            cls.bot_id == bot_id,
+        )
+        result = await session.execute(sql)
+        data = result.scalars().all()
+        if data:
+            return data[0].force_allow_peek
+        return None
+
+
 @site.register_admin
 class DNABindAdmin(GsAdminModel):
     pk_name = "id"
@@ -435,3 +596,27 @@ class DNASignAdmin(GsAdminModel):
 
     # 配置管理模型
     model = DNASign
+
+
+@site.register_admin
+class DNAPrivacyAdmin(GsAdminModel):
+    pk_name = "id"
+    page_schema = PageSchema(
+        label="二重螺旋隐私管理",
+        icon="fa fa-eye-slash",
+    )  # type: ignore
+
+    # 配置管理模型
+    model = DNAPrivacy
+
+
+@site.register_admin
+class DNAGroupPrivacyAdmin(GsAdminModel):
+    pk_name = "id"
+    page_schema = PageSchema(
+        label="二重螺旋群隐私管理",
+        icon="fa fa-users-slash",
+    )  # type: ignore
+
+    # 配置管理模型
+    model = DNAGroupPrivacy

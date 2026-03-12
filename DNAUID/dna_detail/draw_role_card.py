@@ -38,6 +38,7 @@ from ..utils.msgs.notify import (
     dna_not_found,
     dna_uid_invalid,
     dna_not_unlocked,
+    dna_peek_blocked,
     dna_token_invalid,
 )
 from ..utils.name_convert import alias_to_char_name, char_name_to_char_id
@@ -81,7 +82,11 @@ weapon_attr_list = [
 
 
 async def draw_role_card(bot: Bot, ev: Event, char_name: str):
-    user_id = get_using_id(ev)
+    user_id = await get_using_id(ev)
+    # 检查是否被防偷窥阻止（有@目标但被阻止）
+    if ev.at and user_id == ev.user_id:
+        await dna_peek_blocked(bot, ev)
+        return
     uid = await DNABind.get_uid_by_game(user_id, ev.bot_id)
     if not uid:
         await dna_uid_invalid(bot, ev)

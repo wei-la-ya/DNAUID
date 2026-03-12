@@ -17,7 +17,7 @@ async def send_dna_notify(bot: Bot, ev: Event, msg: str, need_at: bool = True):
 async def dna_uid_invalid(bot: Bot, ev: Event, need_at: bool = True):
     from ...dna_config.prefix import DNA_PREFIX
 
-    is_use_other_id = get_using_id(ev) != ev.user_id
+    is_use_other_id = await get_using_id(ev) != ev.user_id
     msg = (
         [
             "UID无效，请重新绑定",
@@ -32,13 +32,18 @@ async def dna_uid_invalid(bot: Bot, ev: Event, need_at: bool = True):
 
 async def dna_token_invalid(bot: Bot, ev: Event, need_at: bool = True):
     msg = ["Token无效，请重新登录"]
-    is_use_other_id = get_using_id(ev) != ev.user_id
+    is_use_other_id = await get_using_id(ev) != ev.user_id
     msg = "\n".join(msg) if not is_use_other_id else "该用户的 Token 无效"
     return await send_dna_notify(bot, ev, msg, need_at)
 
 
 async def dna_not_found(bot: Bot, ev: Event, resource_name: str, need_at: bool = True):
     return await send_dna_notify(bot, ev, f"{resource_name}未找到，请检查是否正确", need_at)
+
+
+async def dna_peek_blocked(bot: Bot, ev: Event, need_at: bool = True):
+    """被防偷窥阻止时的提示"""
+    return await send_dna_notify(bot, ev, "该用户开启了防偷窥，无法查看其游戏信息~", need_at)
 
 
 async def dna_not_unlocked(bot: Bot, ev: Event, resource_name: str, need_at: bool = True):
