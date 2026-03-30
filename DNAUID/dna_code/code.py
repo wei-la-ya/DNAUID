@@ -1,6 +1,7 @@
-import datetime
-import aiohttp
 import json
+import datetime
+
+import aiohttp
 
 from gsuid_core.bot import Bot
 from gsuid_core.logger import logger
@@ -46,4 +47,4 @@ async def get_dna_code_info(bot: Bot, ev: Event):
 
     except Exception as e:
         logger.error(f"错误: {e}")
-        await bot.send(f"[DNA兑换码] 获取失败")
+        await bot.send("[DNA兑换码] 获取失败")
